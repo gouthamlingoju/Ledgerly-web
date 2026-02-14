@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+.DS_Store
+*.log
+
+# Node.js
+node_modules/
+.next/
+coverage/
+build/
+dist/
+.npm
+.DS_Store
+
+# Editor directories
+.idea/
+.vscode/
+*.swp
+*.swo
