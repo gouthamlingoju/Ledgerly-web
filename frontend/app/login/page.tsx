@@ -42,7 +42,7 @@ export default function LoginPage() {
             </div>
 
             <div className="w-full max-w-md bg-surface border border-border rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10">
-                <div className="text-center mb-20 test">
+                <div className="text-center mb-5">
                     <h1 className="text-2xl font-bold tracking-tight">📒 Welcome back</h1>
                     <p className="text-muted text-sm mt-2">Sign in to your Ledgerly account</p>
                 </div>

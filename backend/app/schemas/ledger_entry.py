@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
-from app.models.ledger_entry import Direction
+from app.enums import Direction
 
 
 class LedgerEntryCreate(BaseModel):

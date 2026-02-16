@@ -2,13 +2,11 @@ from uuid import UUID
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, func, case
-from sqlalchemy.ext.asyncio import AsyncSession
+from supabase import Client
 
-from app.database import get_db
-from app.models.user import User
-from app.models.contact import Contact
-from app.models.ledger_entry import LedgerEntry, Direction
+from app.dependencies import get_supabase
+from app.enums import Direction
+from app.schemas.auth import UserResponse
 from app.schemas.ledger_entry import LedgerEntryCreate, LedgerEntryResponse, BalanceResponse
 from app.services.auth import get_current_user
 
@@ -18,147 +16,149 @@ router = APIRouter(prefix="/ledger", tags=["Ledger Entries"])
 @router.post("/entries", response_model=LedgerEntryResponse, status_code=status.HTTP_201_CREATED)
 async def create_entry(
     data: LedgerEntryCreate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user),
+    supabase: Client = Depends(get_supabase),
 ):
     # Verify contact ownership
-    result = await db.execute(
-        select(Contact).where(Contact.id == data.contact_id)
-    )
-    contact = result.scalar_one_or_none()
+    contact_response = supabase.table("contacts").select("*").eq("id", str(data.contact_id)).single().execute()
+    contact = contact_response.data
+    
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found")
-    if contact.user_id != current_user.id:
+    if contact["user_id"] != str(current_user.id):
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    entry = LedgerEntry(
-        user_id=current_user.id,
-        contact_id=data.contact_id,
-        direction=data.direction,
-        amount=data.amount,
-        note=data.note,
-    )
-    db.add(entry)
-    await db.flush()
+    entry_data = {
+        "user_id": str(current_user.id),
+        "contact_id": str(data.contact_id),
+        "direction": data.direction.value,
+        "amount": float(data.amount),
+        "note": data.note,
+    }
+    
+    try:
+        response = supabase.table("ledger_entries").insert(entry_data).select().execute()
+        entry = response.data[0]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-    resp = LedgerEntryResponse.model_validate(entry)
-    resp.contact_name = contact.name
-    return resp
+    return LedgerEntryResponse(**entry, contact_name=contact["name"])
 
 
 @router.get("/entries", response_model=list[LedgerEntryResponse])
 async def list_entries(
     contact_id: UUID | None = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user),
+    supabase: Client = Depends(get_supabase),
 ):
-    query = (
-        select(LedgerEntry, Contact.name.label("contact_name"))
-        .join(Contact, LedgerEntry.contact_id == Contact.id)
-        .where(LedgerEntry.user_id == current_user.id)
-    )
+    query = supabase.table("ledger_entries").select("*").eq("user_id", str(current_user.id))
+    
     if contact_id:
-        query = query.where(LedgerEntry.contact_id == contact_id)
+        query = query.eq("contact_id", str(contact_id))
+    
+    query = query.order("created_at", desc=True)
+    response = query.execute()
+    entries = response.data
+    
+    # Fetch contacts to map names
+    # Optimization: If filtering by contact_id, we only need that one contact.
+    contacts_map = {}
+    if contact_id:
+        c_resp = supabase.table("contacts").select("id, name").eq("id", str(contact_id)).single().execute()
+        if c_resp.data:
+            contacts_map[str(contact_id)] = c_resp.data["name"]
+    else:
+        # Fetch all user contacts
+        c_resp = supabase.table("contacts").select("id, name").eq("user_id", str(current_user.id)).execute()
+        for c in c_resp.data:
+            contacts_map[c["id"]] = c["name"]
 
-    query = query.order_by(LedgerEntry.created_at.desc())
-
-    result = await db.execute(query)
-    entries = []
-    for row in result.all():
-        entry = row[0]
-        resp = LedgerEntryResponse.model_validate(entry)
-        resp.contact_name = row[1]
-        entries.append(resp)
-    return entries
+    result = []
+    for entry in entries:
+        # Supabase returns UUIDs as strings
+        c_name = contacts_map.get(entry["contact_id"])
+        result.append(LedgerEntryResponse(**entry, contact_name=c_name))
+        
+    return result
 
 
 @router.get("/entries/{entry_id}", response_model=LedgerEntryResponse)
 async def get_entry(
     entry_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user),
+    supabase: Client = Depends(get_supabase),
 ):
-    result = await db.execute(
-        select(LedgerEntry, Contact.name.label("contact_name"))
-        .join(Contact, LedgerEntry.contact_id == Contact.id)
-        .where(LedgerEntry.id == entry_id)
-    )
-    row = result.one_or_none()
-    if not row:
+    response = supabase.table("ledger_entries").select("*").eq("id", str(entry_id)).single().execute()
+    entry = response.data
+    
+    if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
-    entry = row[0]
-    if entry.user_id != current_user.id:
+    if entry["user_id"] != str(current_user.id):
         raise HTTPException(status_code=403, detail="Not authorized")
-    resp = LedgerEntryResponse.model_validate(entry)
-    resp.contact_name = row[1]
-    return resp
+        
+    # Fetch contact name
+    c_resp = supabase.table("contacts").select("name").eq("id", entry["contact_id"]).single().execute()
+    contact_name = c_resp.data["name"] if c_resp.data else None
+    
+    return LedgerEntryResponse(**entry, contact_name=contact_name)
 
 
 @router.delete("/entries/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_entry(
     entry_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user),
+    supabase: Client = Depends(get_supabase),
 ):
-    result = await db.execute(
-        select(LedgerEntry).where(LedgerEntry.id == entry_id)
-    )
-    entry = result.scalar_one_or_none()
+    # Verify ownership before delete? 
+    # Or just try to delete with matching user_id. 
+    # Supabase will return count 0 if not found/matching.
+    # But usually we want to return 404/403 explicit.
+    
+    response = supabase.table("ledger_entries").select("*").eq("id", str(entry_id)).single().execute()
+    entry = response.data
+    
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
-    if entry.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    await db.delete(entry)
-    await db.flush()
+    if entry["user_id"] != str(current_user.id):
+         raise HTTPException(status_code=403, detail="Not authorized")
+         
+    supabase.table("ledger_entries").delete().eq("id", str(entry_id)).execute()
 
 
 @router.get("/balance/{contact_id}", response_model=BalanceResponse)
 async def get_balance(
     contact_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user),
+    supabase: Client = Depends(get_supabase),
 ):
-    # Verify contact ownership
-    result = await db.execute(select(Contact).where(Contact.id == contact_id))
-    contact = result.scalar_one_or_none()
+    # Verify contact
+    c_resp = supabase.table("contacts").select("*").eq("id", str(contact_id)).single().execute()
+    contact = c_resp.data
+    
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found")
-    if contact.user_id != current_user.id:
+    if contact["user_id"] != str(current_user.id):
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    result = await db.execute(
-        select(
-            func.coalesce(
-                func.sum(
-                    case(
-                        (LedgerEntry.direction == Direction.credit, LedgerEntry.amount),
-                        else_=Decimal("0"),
-                    )
-                ),
-                Decimal("0"),
-            ).label("total_credit"),
-            func.coalesce(
-                func.sum(
-                    case(
-                        (LedgerEntry.direction == Direction.debit, LedgerEntry.amount),
-                        else_=Decimal("0"),
-                    )
-                ),
-                Decimal("0"),
-            ).label("total_debit"),
-        ).where(
-            LedgerEntry.contact_id == contact_id,
-            LedgerEntry.user_id == current_user.id,
-        )
-    )
-    row = result.one()
-    total_credit = row[0]
-    total_debit = row[1]
+    # Fetch entries
+    entries_resp = supabase.table("ledger_entries").select("amount, direction").eq("contact_id", str(contact_id)).eq("user_id", str(current_user.id)).execute()
+    entries = entries_resp.data
+    
+    total_credit = Decimal("0")
+    total_debit = Decimal("0")
+    
+    for entry in entries:
+        amount = Decimal(str(entry["amount"]))
+        if entry["direction"] == Direction.credit:
+            total_credit += amount
+        else:
+            total_debit += amount
+            
     balance = total_credit - total_debit
 
     return BalanceResponse(
         contact_id=contact_id,
-        contact_name=contact.name,
+        contact_name=contact["name"],
         balance=balance,
         total_credit=total_credit,
         total_debit=total_debit,
@@ -167,49 +167,52 @@ async def get_balance(
 
 @router.get("/balances", response_model=list[BalanceResponse])
 async def get_all_balances(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user),
+    supabase: Client = Depends(get_supabase),
 ):
-    result = await db.execute(
-        select(
-            Contact.id,
-            Contact.name,
-            func.coalesce(
-                func.sum(
-                    case(
-                        (LedgerEntry.direction == Direction.credit, LedgerEntry.amount),
-                        else_=Decimal("0"),
-                    )
-                ),
-                Decimal("0"),
-            ).label("total_credit"),
-            func.coalesce(
-                func.sum(
-                    case(
-                        (LedgerEntry.direction == Direction.debit, LedgerEntry.amount),
-                        else_=Decimal("0"),
-                    )
-                ),
-                Decimal("0"),
-            ).label("total_debit"),
-        )
-        .outerjoin(LedgerEntry, Contact.id == LedgerEntry.contact_id)
-        .where(Contact.user_id == current_user.id)
-        .group_by(Contact.id, Contact.name)
-        .order_by(Contact.name)
-    )
-
-    balances = []
-    for row in result.all():
-        total_credit = row[2]
-        total_debit = row[3]
-        balances.append(
+    # Fetch contacts
+    c_resp = supabase.table("contacts").select("id, name").eq("user_id", str(current_user.id)).order("name").execute()
+    contacts = c_resp.data
+    
+    # Fetch all entries
+    e_resp = supabase.table("ledger_entries").select("contact_id, amount, direction").eq("user_id", str(current_user.id)).execute()
+    entries = e_resp.data
+    
+    # Aggregate
+    # balances[contact_id] = {"credit": 0, "debit": 0}
+    balances_map = {}
+    
+    for entry in entries:
+        c_id = entry["contact_id"]
+        amount = Decimal(str(entry["amount"]))
+        direction = entry["direction"]
+        
+        if c_id not in balances_map:
+            balances_map[c_id] = {"credit": Decimal(0), "debit": Decimal(0)}
+            
+        if direction == Direction.credit:
+            balances_map[c_id]["credit"] += amount
+        else:
+            balances_map[c_id]["debit"] += amount
+            
+    result = []
+    for contact in contacts:
+        c_id = contact["id"]
+        name = contact["name"]
+        
+        stats = balances_map.get(c_id, {"credit": Decimal(0), "debit": Decimal(0)})
+        total_credit = stats["credit"]
+        total_debit = stats["debit"]
+        balance = total_credit - total_debit
+        
+        result.append(
             BalanceResponse(
-                contact_id=row[0],
-                contact_name=row[1],
-                balance=total_credit - total_debit,
+                contact_id=UUID(c_id), # Pydantic expects UUID object if defined as UUID
+                contact_name=name,
+                balance=balance,
                 total_credit=total_credit,
                 total_debit=total_debit,
             )
         )
-    return balances
+        
+    return result

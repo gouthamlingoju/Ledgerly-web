@@ -76,10 +76,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <div className="flex items-center gap-10">
                             <Link href="/dashboard" className="flex items-center gap-2.5 group">
                                 <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
-                                    style={{ background: "var(--gradient-primary)" }}>
-                                    <span className="text-white text-sm">📒</span>
+                                    // style={{ background: "var(--gradient-primary)" }}
+                                    >
+                                    <span className="text-white text-4xl">📒</span>
                                 </div>
-                                <span className="text-lg font-bold text-foreground tracking-tight">Ledgerly</span>
+                                <span className="text-3xl font-bold text-foreground tracking-tight">Ledgerly</span>
                             </Link>
                             {/* Desktop nav */}
                             <nav className="hidden sm:flex items-center gap-1">
