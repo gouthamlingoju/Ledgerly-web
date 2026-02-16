@@ -31,7 +31,7 @@ async def register(data: UserCreate, supabase: Client = Depends(get_supabase)):
     }
     
     try:
-        response = supabase.table("users").insert(user_data).select().execute()
+        response = supabase.table("users").insert(user_data).execute()
         if not response.data:
              raise HTTPException(status_code=500, detail="Failed to create user")
         new_user = response.data[0]

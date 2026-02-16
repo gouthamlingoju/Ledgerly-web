@@ -24,7 +24,7 @@ async def create_contact(
         "name": data.name,
     }
     try:
-        response = supabase.table("contacts").insert(contact_data).select().execute()
+        response = supabase.table("contacts").insert(contact_data).execute()
         contact = response.data[0]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -102,7 +102,7 @@ async def update_contact(
     contact = await _get_owned_contact(contact_id, str(current_user.id), supabase)
     
     try:
-        response = supabase.table("contacts").update({"name": data.name}).eq("id", str(contact_id)).select().execute()
+        response = supabase.table("contacts").update({"name": data.name}).eq("id", str(contact_id)).execute()
         updated_contact = response.data[0]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

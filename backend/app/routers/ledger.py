@@ -37,7 +37,7 @@ async def create_entry(
     }
     
     try:
-        response = supabase.table("ledger_entries").insert(entry_data).select().execute()
+        response = supabase.table("ledger_entries").insert(entry_data).execute()
         entry = response.data[0]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
