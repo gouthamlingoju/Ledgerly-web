@@ -106,10 +106,38 @@ export default function LedgerPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => ledgerApi.updateEntry(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["entries"] });
+      queryClient.invalidateQueries({ queryKey: ["balance"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["balances"] });
+      setIsEditingEntry(null);
+    },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      setError(axiosErr.response?.data?.detail || "Failed to update entry");
+    },
+  });
+
+  const [isEditingEntry, setIsEditingEntry] = useState<any>(null);
+
   const resetForm = () => {
     setShowForm(false);
+    setIsEditingEntry(null);
     setAmount("");
     setNote("");
+    setError("");
+  };
+
+  const startEdit = (entry: any) => {
+    setIsEditingEntry(entry);
+    setAmount(entry.amount.toString());
+    setNote(entry.note || "");
+    setDirection(entry.direction);
+    setContactId(entry.contact_id);
+    setShowForm(true);
     setError("");
   };
 
@@ -120,12 +148,24 @@ export default function LedgerPage() {
       setError("Please fill all required fields with valid values");
       return;
     }
-    createMutation.mutate({
-      contact_id: contactId,
-      direction,
-      amount: parsedAmount,
-      note: note.trim() || undefined,
-    });
+
+    if (isEditingEntry) {
+      updateMutation.mutate({
+        id: isEditingEntry.id,
+        data: {
+          direction,
+          amount: parsedAmount,
+          note: note.trim() || null,
+        }
+      });
+    } else {
+      createMutation.mutate({
+        contact_id: contactId,
+        direction,
+        amount: parsedAmount,
+        note: note.trim() || undefined,
+      });
+    }
   };
 
   const formatDate = (iso: string) =>
@@ -200,7 +240,7 @@ export default function LedgerPage() {
 
           <div className={`bg-surface rounded-2xl border border-border p-6 sm:p-7 ${showForm ? "block" : "hidden xl:block"}`}
             style={{ boxShadow: "var(--shadow-card)" }}>
-            <h3 className="font-semibold text-lg mb-5">New Ledger Entry</h3>
+            <h3 className="font-semibold text-lg mb-5">{isEditingEntry ? "Edit Ledger Entry" : "New Ledger Entry"}</h3>
             <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
                 <div className="bg-danger-light border border-danger/20 text-danger text-sm px-4 py-3 rounded-xl flex items-center gap-2">
@@ -215,7 +255,8 @@ export default function LedgerPage() {
                   <select
                     value={contactId}
                     onChange={(e) => setContactId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm"
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm disabled:opacity-50"
+                    disabled={!!isEditingEntry}
                   >
                     <option value="">Select contact...</option>
                     {contacts?.map((c) => (
@@ -282,11 +323,11 @@ export default function LedgerPage() {
               <div className="flex gap-3 pt-1">
                 <button
                   type="submit"
-                  disabled={createMutation.isPending}
+                  disabled={createMutation.isPending || updateMutation.isPending}
                   className="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 text-white text-sm font-semibold rounded-xl disabled:opacity-50 cursor-pointer hover:opacity-90 transition-all"
                   style={{ background: "var(--gradient-primary)" }}
                 >
-                  {createMutation.isPending ? "Saving..." : "Save Entry"}
+                  {createMutation.isPending || updateMutation.isPending ? "Saving..." : (isEditingEntry ? "Update Entry" : "Save Entry")}
                 </button>
                 <button
                   type="button"
@@ -414,11 +455,22 @@ export default function LedgerPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-3">
-                      <span className={`text-sm font-bold tabular-nums ${entry.direction === "credit" ? "text-success" : "text-danger"
+                    <div className="flex items-center gap-1 shrink-0 ml-3">
+                      <span className={`text-sm font-bold tabular-nums mr-2 ${entry.direction === "credit" ? "text-success" : "text-danger"
                         }`}>
                         {entry.direction === "credit" ? "+" : "-"}₹{Number(entry.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </span>
+                      <button
+                        onClick={() => startEdit(entry)}
+                        className="text-muted hover:text-primary sm:opacity-0 sm:group-hover:opacity-100 transition-all cursor-pointer p-2 rounded-lg hover:bg-primary-light"
+                        title="Edit"
+                      >
+                        <dt>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </dt>
+                      </button>
                       <button
                         onClick={() => { if (confirm("Delete this entry?")) deleteMutation.mutate(entry.id); }}
                         className="text-muted hover:text-danger active:text-danger sm:opacity-0 sm:group-hover:opacity-100 transition-all cursor-pointer p-2 rounded-lg hover:bg-danger-light active:bg-danger-light"

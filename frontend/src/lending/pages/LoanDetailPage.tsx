@@ -4,22 +4,31 @@ import { useLending } from "../hooks/useLending";
 
 export default function LoanDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { useLoan, useRepayment, useExtension, useSettlement } = useLending();
+  const { 
+    useLoan, useRepayment, useExtension, useSettlement, 
+    useUpdateLoan, useDeleteLoan, useUpdateTransaction, useDeleteTransaction 
+  } = useLending();
   
   const { data: loanDetail, isLoading: isLoadingLoan } = useLoan(id!);
   const repaymentMutation = useRepayment(id!);
   const extensionMutation = useExtension(id!);
   const settlementMutation = useSettlement(id!);
+  const updateLoanMutation = useUpdateLoan();
+  const deleteLoanMutation = useDeleteLoan();
+  const updateTxMutation = useUpdateTransaction(id);
+  const deleteTxMutation = useDeleteTransaction(id);
 
   const loan = loanDetail?.loan;
   const transactions = loanDetail?.transactions;
   const counterparty = loanDetail?.counterparty;
 
-  const [activeTab, setActiveTab] = useState<'details' | 'repay' | 'settle'>('details');
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [activeTab, setActiveTab] = useState<'repayment' | 'extension' | 'settlement' | 'edit'>('repayment');
+  const [amount, setAmount] = useState<string>('');
+  const [rate, setRate] = useState<string>('');
+  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isEditingTx, setIsEditingTx] = useState<any | null>(null);
 
   const isLent = loan?.type === 'lent';
 
@@ -34,7 +43,7 @@ export default function LoanDetailPage() {
       transaction_date: date,
       notes: notes || undefined
     }, {
-      onSuccess: () => { setAmount(""); setNotes(""); setActiveTab('details'); },
+      onSuccess: () => { setAmount(""); setNotes(""); setActiveTab('repayment'); setError(null); },
       onError: (err: any) => setError(err.response?.data?.detail || "Repayment failed")
     });
   };
@@ -47,7 +56,7 @@ export default function LoanDetailPage() {
       transaction_date: date,
       notes: notes || undefined
     }, {
-      onSuccess: () => { setAmount(""); setNotes(""); setActiveTab('details'); },
+      onSuccess: () => { setAmount(""); setNotes(""); setActiveTab('repayment'); setError(null); },
       onError: (err: any) => setError(err.response?.data?.detail || "Settlement failed")
     });
   };
@@ -56,6 +65,63 @@ export default function LoanDetailPage() {
     if (!window.confirm("This will capitalize current accrued interest and extend the due date by the original duration. Proceed?")) return;
     extensionMutation.mutate({ notes: "Manual extension" }, {
       onError: (err: any) => setError(err.response?.data?.detail || "Extension failed")
+    });
+  };
+
+  const handleUpdateLoan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loan) return;
+    try {
+      await updateLoanMutation.mutateAsync({
+        id: loan.id,
+        data: {
+          original_principal: Number(amount),
+          interest_rate: Number(rate),
+          due_date: date,
+        },
+      });
+      setError(null);
+      setActiveTab('repayment');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Failed to update loan");
+    }
+  };
+
+  const handleDeleteLoan = () => {
+    if (!window.confirm("Are you sure? This will delete the loan and ALL associated transactions permanently.")) return;
+    deleteLoanMutation.mutate(id!, {
+      onSuccess: () => { window.location.href = "/dashboard/lending/loans"; },
+      onError: (err: any) => setError(err.response?.data?.detail || "Delete failed")
+    });
+  };
+
+  const handleDeleteTransaction = (txId: string) => {
+    if (!window.confirm("Delete this transaction? The loan balance will be automatically adjusted.")) return;
+    deleteTxMutation.mutate(txId, {
+      onError: (err: any) => setError(err.response?.data?.detail || "Delete failed")
+    });
+  };
+
+  const startEditTransaction = (tx: any) => {
+    setIsEditingTx(tx);
+    setAmount(tx.total_amount.toString());
+    setDate(tx.transaction_date);
+    setNotes(tx.notes || "");
+  };
+
+  const handleUpdateTransaction = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isEditingTx) return;
+    updateTxMutation.mutate({
+      id: isEditingTx.id,
+      data: {
+        total_amount: parseFloat(amount),
+        transaction_date: date,
+        notes: notes || undefined
+      }
+    }, {
+      onSuccess: () => { setIsEditingTx(null); setAmount(""); setNotes(""); setError(null); },
+      onError: (err: any) => setError(err.response?.data?.detail || "Update failed")
     });
   };
 
@@ -118,29 +184,21 @@ export default function LoanDetailPage() {
             {/* Action Tabs Content */}
             <div className="bg-surface rounded-2xl border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-card)" }}>
                 <div className="flex border-b border-border">
-                   <button onClick={() => setActiveTab('details')} className={`flex-1 py-4 text-sm font-bold transition-all ${activeTab === 'details' ? 'bg-background text-primary border-b-2 border-primary' : 'text-muted hover:text-foreground'}`}>Actions</button>
-                   <button onClick={() => setActiveTab('repay')} className={`flex-1 py-4 text-sm font-bold transition-all ${activeTab === 'repay' ? 'bg-background text-primary border-b-2 border-primary' : 'text-muted hover:text-foreground'}`}>Record Repayment</button>
-                   <button onClick={() => setActiveTab('settle')} className={`flex-1 py-4 text-sm font-bold transition-all ${activeTab === 'settle' ? 'bg-background text-primary border-b-2 border-primary' : 'text-muted hover:text-foreground'}`}>Final Settlement</button>
+                   <button onClick={() => setActiveTab('repayment')} className={`flex-1 py-4 text-sm font-bold transition-all ${activeTab === 'repayment' ? 'bg-background text-primary border-b-2 border-primary' : 'text-muted hover:text-foreground'}`}>Actions</button>
+                   <button onClick={() => setActiveTab('settlement')} className={`flex-1 py-4 text-sm font-bold transition-all ${activeTab === 'settlement' ? 'bg-background text-primary border-b-2 border-primary' : 'text-muted hover:text-foreground'}`}>Final Settlement</button>
+                   <button onClick={() => { setActiveTab('edit'); setAmount(loan.original_principal.toString()); setRate(loan.interest_rate.toString()); setDate(loan.due_date); }} className={`flex-1 py-4 text-sm font-bold transition-all ${activeTab === 'edit' ? 'bg-background text-primary border-b-2 border-primary' : 'text-muted hover:text-foreground'}`}>Edit Loan</button>
                 </div>
 
                 <div className="p-6 sm:p-8 text-sm">
-                   {activeTab === 'details' && (
-                      <div className="space-y-4">
-                         <p className="text-muted leading-relaxed">Choose an action to manage this loan. Repayments reduce principal or cover interest, while extensions capitalize accrued interest and push the due date forward.</p>
-                         <div className="pt-4 flex flex-wrap gap-3">
-                            <button 
-                              onClick={handleExtension}
-                              disabled={extensionMutation.isPending || loan.status === 'settled' || loan.status === 'closed'}
-                              className="px-6 py-2.5 rounded-xl bg-background border border-border font-bold text-primary hover:bg-primary/5 transition-all disabled:opacity-50"
-                            >
-                               Extend & Capitalize
-                            </button>
-                         </div>
-                      </div>
-                   )}
-
-                   {activeTab === 'repay' && (
+                   {activeTab === 'repayment' && (
                       <form onSubmit={handleRepayment} className="space-y-4">
+                         <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 mb-4">
+                            <p className="font-bold flex items-center gap-2 mb-1">
+                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                               Record Repayment
+                            </p>
+                            <p className="text-xs">Record a payment received from or made to the counterparty. This will reduce the outstanding principal and/or cover accrued interest.</p>
+                         </div>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Repayment Amount (₹)</label>
@@ -155,13 +213,31 @@ export default function LoanDetailPage() {
                             <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Notes (Optional)</label>
                             <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none" placeholder="e.g. Paid via UPI" />
                          </div>
-                         <button type="submit" disabled={repaymentMutation.isPending} className="px-8 py-3 rounded-xl bg-primary text-white font-bold hover:opacity-90 transition-all disabled:opacity-50">
-                            {repaymentMutation.isPending ? "Recording..." : "Record Repayment"}
-                         </button>
+                         <div className="pt-4 flex flex-wrap gap-3">
+                            <button type="submit" disabled={repaymentMutation.isPending} className="px-8 py-3 rounded-xl bg-primary text-white font-bold hover:opacity-90 transition-all disabled:opacity-50">
+                               {repaymentMutation.isPending ? "Recording..." : "Record Repayment"}
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={handleExtension}
+                              disabled={extensionMutation.isPending || loan.status === 'settled' || loan.status === 'closed'}
+                              className="px-6 py-2.5 rounded-xl bg-background border border-border font-bold text-primary hover:bg-primary/5 transition-all disabled:opacity-50"
+                            >
+                               Extend & Capitalize
+                            </button>
+                            <button 
+                               type="button"
+                               onClick={handleDeleteLoan}
+                               disabled={deleteLoanMutation.isPending}
+                               className="px-6 py-2.5 rounded-xl bg-danger/10 text-danger border border-danger/20 font-bold hover:bg-danger/20 transition-all disabled:opacity-50"
+                            >
+                               Delete Loan
+                            </button>
+                         </div>
                       </form>
                    )}
 
-                   {activeTab === 'settle' && (
+                   {activeTab === 'settlement' && (
                       <form onSubmit={handleSettlement} className="space-y-4">
                          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 mb-4">
                             <p className="font-bold flex items-center gap-2 mb-1">
@@ -185,6 +261,28 @@ export default function LoanDetailPage() {
                          </button>
                       </form>
                    )}
+
+                     {activeTab === 'edit' && (
+                       <form onSubmit={handleUpdateLoan} className="space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                             <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Loan Amount (₹)</label>
+                                <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none" required />
+                             </div>
+                             <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Interest Rate (% / mo)</label>
+                                <input type="number" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none" required />
+                             </div>
+                             <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Due Date</label>
+                                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none" required />
+                             </div>
+                          </div>
+                          <button type="submit" disabled={updateLoanMutation.isPending} className="px-8 py-3 rounded-xl bg-primary text-white font-bold hover:opacity-90 transition-all disabled:opacity-50">
+                             {updateLoanMutation.isPending ? "Saving..." : "Save Loan Changes"}
+                          </button>
+                       </form>
+                     )}
                    {error && <p className="mt-4 text-xs font-bold text-danger">{error}</p>}
                 </div>
             </div>
@@ -201,9 +299,10 @@ export default function LoanDetailPage() {
                     <tr className="border-b border-border bg-background/50">
                       <th className="px-6 py-3 font-bold text-[10px] uppercase tracking-widest text-muted">Date</th>
                       <th className="px-6 py-3 font-bold text-[10px] uppercase tracking-widest text-muted">Type</th>
-                      <th className="px-6 py-3 font-bold text-[10px] uppercase tracking-widest text-muted">Amount</th>
+                      <th className="px-6 py-3 font-bold text-[10px] uppercase tracking-widest text-muted">Total Amount</th>
                       <th className="px-6 py-3 font-bold text-[10px] uppercase tracking-widest text-muted">Principal</th>
                       <th className="px-6 py-3 font-bold text-[10px] uppercase tracking-widest text-muted">Interest</th>
+                      <th className="px-6 py-3 font-bold text-[10px] uppercase tracking-widest text-muted text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/50">
@@ -220,14 +319,26 @@ export default function LoanDetailPage() {
                             {tx.transaction_type}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap font-bold">₹{Number(tx.total_amount).toLocaleString()}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-muted">₹{Number(tx.principal_component).toLocaleString()}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-muted">₹{Number(tx.interest_component).toLocaleString()}</td>
+                        <td className="px-6 py-4 whitespace-nowrap font-bold">₹{Number(tx.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-muted">₹{Number(tx.principal_component).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-muted">₹{Number(tx.interest_component).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                           <div className="flex justify-end gap-2">
+                              <button onClick={() => startEditTransaction(tx)} className="text-primary hover:text-primary-dark p-1">
+                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                              </button>
+                              {tx.transaction_type !== 'disbursement' && (
+                                <button onClick={() => handleDeleteTransaction(tx.id)} className="text-danger hover:text-danger-dark p-1">
+                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                              )}
+                           </div>
+                        </td>
                       </tr>
                     ))}
                     {transactions?.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-6 py-10 text-center text-muted italic">No transactions found</td>
+                        <td colSpan={6} className="px-6 py-10 text-center text-muted italic">No transactions found</td>
                       </tr>
                     )}
                   </tbody>
@@ -272,7 +383,36 @@ export default function LoanDetailPage() {
                 <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
             </div>
          </div>
-      </div>
+       </div>
+
+       {/* Edit Transaction Modal */}
+       {isEditingTx && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+             <div className="bg-surface w-full max-w-md rounded-2xl border border-border p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+                <h3 className="text-xl font-bold mb-4">Edit Transaction</h3>
+                <form onSubmit={handleUpdateTransaction} className="space-y-4">
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Total Amount (₹)</label>
+                      <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20" required />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Date</label>
+                      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20" required />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Notes</label>
+                      <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20" />
+                   </div>
+                   <div className="flex gap-3 pt-4">
+                      <button type="button" onClick={() => setIsEditingTx(null)} className="flex-1 px-4 py-2.5 rounded-xl border border-border font-bold hover:bg-muted/5">Cancel</button>
+                      <button type="submit" disabled={updateTxMutation.isPending} className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white font-bold hover:opacity-90 disabled:opacity-50">
+                         {updateTxMutation.isPending ? "Saving..." : "Save Changes"}
+                      </button>
+                   </div>
+                </form>
+             </div>
+          </div>
+       )}
     </div>
   );
 }

@@ -1,20 +1,26 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { lendingApi } from "../api/lendingApi";
+import { useLending } from "../hooks/useLending";
 import { LoanStatus, LoanType } from "../types";
 
 export default function CounterpartyDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [sortBy, setSortBy] = useState<'date' | 'principal'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [error, setError] = useState("");
 
-  const { data: detail, isLoading } = useQuery({
-    queryKey: ["counterparty-detail", id],
-    queryFn: () => lendingApi.getCounterpartyDetail(id).then(r => r.data),
-    enabled: !!id,
-  });
+  const { useCounterpartyDetail, useUpdateCounterparty, useDeleteCounterparty } = useLending();
+
+  const { data: detail, isLoading } = useCounterpartyDetail(id);
+  const updateMutation = useUpdateCounterparty();
+  const deleteMutation = useDeleteCounterparty();
 
   const rawLoans = detail?.loans || [];
 
@@ -62,6 +68,45 @@ export default function CounterpartyDetailPage() {
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
+  const startEditing = () => {
+    setIsEditing(true);
+    setEditName(counterparty.name);
+    setEditPhone(counterparty.phone || "");
+    setEditNotes(counterparty.notes || "");
+    setError("");
+  };
+
+  const handleUpdate = async () => {
+    if (!editName.trim()) {
+      setError("Name cannot be empty.");
+      return;
+    }
+    try {
+      await updateMutation.mutateAsync({
+        id: counterparty.id,
+        data: {
+          name: editName,
+          phone: editPhone || undefined,
+          notes: editNotes || undefined,
+        }
+      });
+      setIsEditing(false);
+      setError("");
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Failed to update counterparty.");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${counterparty.name}? This will delete the counterparty and ALL their loans permanently.`)) return;
+    try {
+      await deleteMutation.mutateAsync(counterparty.id);
+      navigate("/dashboard/lending/counterparties");
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Failed to delete counterparty.");
+    }
+  };
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <div>
@@ -84,19 +129,87 @@ export default function CounterpartyDetailPage() {
               </p>
             </div>
           </div>
-          <Link
-            to={`/lending/new-loan?counterparty=${counterparty.id}`}
-            className="flex items-center gap-2 px-4 sm:px-5 py-2.5 text-white text-sm font-semibold rounded-xl cursor-pointer shrink-0 hover:opacity-90 active:opacity-90 transition-all font-inter shadow-sm"
-            style={{ background: "var(--gradient-primary)" }}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="hidden sm:inline">New Loan</span>
-            <span className="sm:hidden">New</span>
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={startEditing}
+              className="p-2.5 rounded-xl border border-border bg-surface text-muted hover:text-primary hover:border-primary transition-all"
+              title="Edit Counterparty"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            </button>
+            <button
+              onClick={handleDelete}
+              className="p-2.5 rounded-xl border border-border bg-surface text-muted hover:text-danger hover:border-danger transition-all"
+              title="Delete Counterparty"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
+            <Link
+              to={`/lending/new-loan?counterparty=${counterparty.id}`}
+              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 text-white text-sm font-semibold rounded-xl cursor-pointer hover:opacity-90 active:opacity-90 transition-all font-inter shadow-sm"
+              style={{ background: "var(--gradient-primary)" }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="hidden sm:inline">New Loan</span>
+              <span className="sm:hidden">New</span>
+            </Link>
+          </div>
         </div>
       </div>
+
+      {isEditing && (
+        <div className="bg-surface rounded-2xl border border-border p-5 space-y-4" style={{ boxShadow: "var(--shadow-card)" }}>
+          <h3 className="text-lg font-bold">Edit Counterparty</h3>
+          {error && <p className="text-danger text-sm">{error}</p>}
+          <div>
+            <label htmlFor="editName" className="block text-sm font-medium text-muted mb-1">Name</label>
+            <input
+              type="text"
+              id="editName"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="w-full p-2 border border-border rounded-lg bg-background focus:ring-primary focus:border-primary outline-none"
+            />
+          </div>
+          <div>
+            <label htmlFor="editPhone" className="block text-sm font-medium text-muted mb-1">Phone</label>
+            <input
+              type="text"
+              id="editPhone"
+              value={editPhone}
+              onChange={(e) => setEditPhone(e.target.value)}
+              className="w-full p-2 border border-border rounded-lg bg-background focus:ring-primary focus:border-primary outline-none"
+            />
+          </div>
+          <div>
+            <label htmlFor="editNotes" className="block text-sm font-medium text-muted mb-1">Notes</label>
+            <textarea
+              id="editNotes"
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              rows={3}
+              className="w-full p-2 border border-border rounded-lg bg-background focus:ring-primary focus:border-primary outline-none"
+            ></textarea>
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setIsEditing(false)}
+              className="px-4 py-2 text-sm font-semibold rounded-xl border border-border bg-surface text-muted hover:bg-surface-hover transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleUpdate}
+              disabled={updateMutation.isPending}
+              className="px-4 py-2 text-sm font-semibold rounded-xl text-white bg-primary hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {updateMutation.isPending ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-2xl p-5 text-white relative overflow-hidden"
@@ -223,7 +336,7 @@ export default function CounterpartyDetailPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Link to={`/lending/loans/${loan.id}`} className="text-primary hover:text-primary-hover font-semibold transition-colors">
+                        <Link to={`/dashboard/lending/loans/${loan.id}`} className="text-primary hover:text-primary-hover font-semibold transition-colors">
                           View →
                         </Link>
                       </td>

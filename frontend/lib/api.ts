@@ -99,6 +99,11 @@ export const ledgerApi = {
         amount: number;
         note?: string;
     }) => api.post<LedgerEntry>("/ledger/entries", data),
+    updateEntry: (id: string, data: {
+        direction?: "credit" | "debit";
+        amount?: number;
+        note?: string;
+    }) => api.patch<LedgerEntry>(`/ledger/entries/${id}`, data),
     deleteEntry: (id: string) => api.delete(`/ledger/entries/${id}`),
     getBalance: (contactId: string) =>
         api.get<Balance>(`/ledger/balance/${contactId}`),

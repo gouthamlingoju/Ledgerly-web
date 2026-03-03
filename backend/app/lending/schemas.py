@@ -124,3 +124,16 @@ class LoanCreate(BaseModel):
     interest_rate: Decimal
     duration_months: Optional[int] = 1
     start_date: date
+
+class LoanUpdate(BaseModel):
+    original_principal: Optional[Decimal] = None
+    interest_rate: Optional[Decimal] = None
+    duration_months: Optional[int] = None
+    due_date: Optional[date] = None
+    status: Optional[LoanStatus] = None
+    notes: Optional[str] = None
+
+class TransactionUpdate(BaseModel):
+    total_amount: Optional[Decimal] = None
+    transaction_date: Optional[date] = None
+    notes: Optional[str] = None

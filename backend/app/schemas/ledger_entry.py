@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Optional
 from decimal import Decimal
 
 from pydantic import BaseModel, Field
@@ -12,6 +13,12 @@ class LedgerEntryCreate(BaseModel):
     direction: Direction
     amount: Decimal = Field(..., gt=0, max_digits=12, decimal_places=2)
     note: str | None = Field(None, max_length=500)
+
+
+class LedgerEntryUpdate(BaseModel):
+    direction: Optional[Direction] = None
+    amount: Optional[Decimal] = Field(None, gt=0, max_digits=12, decimal_places=2)
+    note: Optional[str] = Field(None, max_length=500)
 
 
 class LedgerEntryResponse(BaseModel):

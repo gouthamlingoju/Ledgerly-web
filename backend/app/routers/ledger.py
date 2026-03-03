@@ -7,7 +7,7 @@ from supabase import Client
 from app.dependencies import get_supabase
 from app.enums import Direction
 from app.schemas.auth import UserResponse
-from app.schemas.ledger_entry import LedgerEntryCreate, LedgerEntryResponse, BalanceResponse
+from app.schemas.ledger_entry import LedgerEntryCreate, LedgerEntryUpdate, LedgerEntryResponse, BalanceResponse
 from app.services.auth import get_current_user
 
 router = APIRouter(prefix="/ledger", tags=["Ledger Entries"])
@@ -123,6 +123,49 @@ async def delete_entry(
          raise HTTPException(status_code=403, detail="Not authorized")
          
     supabase.table("ledger_entries").delete().eq("id", str(entry_id)).execute()
+
+
+@router.patch("/entries/{entry_id}", response_model=LedgerEntryResponse)
+async def update_entry(
+    entry_id: UUID,
+    data: LedgerEntryUpdate,
+    current_user: UserResponse = Depends(get_current_user),
+    supabase: Client = Depends(get_supabase),
+):
+    # Verify ownership
+    response = supabase.table("ledger_entries").select("*").eq("id", str(entry_id)).single().execute()
+    entry = response.data
+    
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    if entry["user_id"] != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    update_data = {}
+    if data.direction is not None:
+        update_data["direction"] = data.direction.value
+    if data.amount is not None:
+        update_data["amount"] = float(data.amount)
+    if data.note is not None:
+        update_data["note"] = data.note
+        
+    if not update_data:
+        # Fetch contact for response
+        c_resp = supabase.table("contacts").select("name").eq("id", entry["contact_id"]).single().execute()
+        contact_name = c_resp.data["name"] if c_resp.data else None
+        return LedgerEntryResponse(**entry, contact_name=contact_name)
+        
+    try:
+        upd_response = supabase.table("ledger_entries").update(update_data).eq("id", str(entry_id)).execute()
+        updated_entry = upd_response.data[0]
+        
+        # Fetch contact for response
+        c_resp = supabase.table("contacts").select("name").eq("id", updated_entry["contact_id"]).single().execute()
+        contact_name = c_resp.data["name"] if c_resp.data else None
+        
+        return LedgerEntryResponse(**updated_entry, contact_name=contact_name)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/balance/{contact_id}", response_model=BalanceResponse)

@@ -11,7 +11,8 @@ from app.lending.schemas import (
     LoanCreate, LoanResponse, LoanStatus, LoanType,
     TransactionType, CashFlowDirection,
     RepaymentRequest, ExtensionRequest, SettlementRequest, LoanTransactionResponse,
-    LoanWithCounterparty, LoanDetailResponse, CounterpartyDetailResponse
+    LoanWithCounterparty, LoanDetailResponse, CounterpartyDetailResponse,
+    LoanUpdate, TransactionUpdate
 )
 from app.lending.calculations import compute_interest_snapshot
 
@@ -348,3 +349,201 @@ async def get_counterparty_detail(conn: asyncpg.Connection, user_id: UUID, cp_id
         counterparty=counterparty,
         loans=loans
     )
+
+async def delete_loan(conn: asyncpg.Connection, user_id: UUID, loan_id: UUID):
+    # Verify ownership
+    res = await conn.execute("DELETE FROM lending_loans WHERE id = $1 AND user_id = $2", str(loan_id), str(user_id))
+    if res == "DELETE 0":
+        raise HTTPException(status_code=404, detail="Loan not found")
+
+async def update_loan(conn: asyncpg.Connection, user_id: UUID, loan_id: UUID, data: LoanUpdate) -> LoanResponse:
+    async with conn.transaction():
+        loan = await conn.fetchrow("SELECT * FROM lending_loans WHERE id = $1 AND user_id = $2 FOR UPDATE", str(loan_id), str(user_id))
+        if not loan:
+            raise HTTPException(status_code=404, detail="Loan not found")
+        
+        fields = []
+        values = [str(loan_id)]
+        
+        if data.original_principal is not None:
+            # Update principals
+            diff = data.original_principal - loan["original_principal"]
+            fields.append(f"original_principal = ${len(values)+1}::numeric")
+            values.append(data.original_principal)
+            fields.append(f"current_principal = current_principal + ${len(values)+1}::numeric")
+            values.append(diff)
+            
+            # Update initial disbursement transaction
+            await conn.execute("""
+                UPDATE lending_transactions 
+                SET total_amount = $1, principal_component = $1 
+                WHERE loan_id = $2 AND transaction_type = 'disbursement'
+            """, data.original_principal, str(loan_id))
+            
+        if data.interest_rate is not None:
+            fields.append(f"interest_rate = ${len(values)+1}")
+            values.append(data.interest_rate)
+        if data.duration_months is not None:
+            fields.append(f"duration_months = ${len(values)+1}")
+            values.append(data.duration_months)
+        if data.due_date is not None:
+            fields.append(f"due_date = ${len(values)+1}")
+            values.append(data.due_date)
+        if data.status is not None:
+            fields.append(f"status = ${len(values)+1}")
+            values.append(data.status.value)
+            
+        if not fields:
+            return LoanResponse(**dict(loan))
+            
+        query = f"UPDATE lending_loans SET {', '.join(fields)} WHERE id = $1 RETURNING *"
+        row = await conn.fetchrow(query, *values)
+        return LoanResponse(**dict(row))
+
+async def _apply_transaction_to_loan(conn: asyncpg.Connection, loan_id: UUID, user_id: UUID, tx_type: str, total_amount: Decimal, principal: Decimal, interest: Decimal, direction: str, undo: bool = False):
+    """Internal helper to apply or undo a transaction's impact on a loan balance."""
+    # This is a simplified version of the logic in process_repayment, etc.
+    # In a real app, we'd refactor the original process functions to use this.
+    
+    multiplier = -1 if undo else 1
+    
+    if tx_type == TransactionType.REPAYMENT.value:
+        await conn.execute("""
+            UPDATE lending_loans SET 
+                current_principal = current_principal - $1,
+                total_interest_paid = total_interest_paid - $2,
+                interest_paid_in_cycle = interest_paid_in_cycle - $2,
+                status = CASE WHEN (current_principal - $1) > 0 THEN 'active' ELSE 'closed' END,
+                closed_at = CASE WHEN (current_principal - $1) <= 0 THEN NOW() ELSE NULL END
+            WHERE id = $3
+        """, principal * multiplier, interest * multiplier, str(loan_id))
+        
+    elif tx_type == TransactionType.CAPITALIZATION.value:
+        await conn.execute("""
+            UPDATE lending_loans SET 
+                current_principal = current_principal + $1,
+                total_interest_capitalized = total_interest_capitalized + $2
+            WHERE id = $3
+        """, principal * multiplier, interest * multiplier, str(loan_id))
+
+    elif tx_type == TransactionType.SETTLEMENT.value:
+        if undo:
+            # Revert from settled to active. We need the previous principal. 
+            # In update_transaction/delete_transaction, we'll have retrieved the tx total_amount or components.
+            # Settlements are special. For now, let's assume restoring to active.
+            await conn.execute("""
+                UPDATE lending_loans SET 
+                    current_principal = $1,
+                    status = 'active',
+                    closed_at = NULL,
+                    settlement_amount = NULL,
+                    settlement_difference = NULL
+                WHERE id = $2
+            """, principal, str(loan_id))
+        else:
+            await conn.execute("""
+                UPDATE lending_loans SET 
+                    current_principal = 0,
+                    status = 'settled',
+                    closed_at = NOW(),
+                    settlement_amount = $1,
+                    settlement_difference = settlement_difference -- remains same or recalculated? 
+                WHERE id = $2
+            """, total_amount, str(loan_id))
+
+async def delete_transaction(conn: asyncpg.Connection, user_id: UUID, transaction_id: UUID):
+    async with conn.transaction():
+        tx = await conn.fetchrow("SELECT * FROM lending_transactions WHERE id = $1 AND user_id = $2 FOR UPDATE", str(transaction_id), str(user_id))
+        if not tx:
+            raise HTTPException(status_code=404, detail="Transaction not found")
+        
+        if tx["transaction_type"] == TransactionType.DISBURSEMENT.value:
+            raise HTTPException(status_code=400, detail="Initial disbursement cannot be deleted. Delete the loan instead.")
+            
+        # Rollback the impact of this transaction
+        await _apply_transaction_to_loan(
+            conn, tx["loan_id"], user_id, 
+            tx["transaction_type"], tx["total_amount"], 
+            tx["principal_component"], tx["interest_component"], 
+            tx["cash_flow_direction"], undo=True
+        )
+        
+        await conn.execute("DELETE FROM lending_transactions WHERE id = $1", str(transaction_id))
+
+async def update_transaction(conn: asyncpg.Connection, user_id: UUID, transaction_id: UUID, data: TransactionUpdate) -> LoanTransactionResponse:
+    async with conn.transaction():
+        tx = await conn.fetchrow("SELECT * FROM lending_transactions WHERE id = $1 AND user_id = $2 FOR UPDATE", str(transaction_id), str(user_id))
+        if not tx:
+            raise HTTPException(status_code=404, detail="Transaction not found")
+            
+        if tx["transaction_type"] == TransactionType.DISBURSEMENT.value:
+            # Can only update notes/date for disbursement
+            if data.total_amount is not None and data.total_amount != tx["total_amount"]:
+                raise HTTPException(status_code=400, detail="Cannot change disbursement amount after creation. Delete and recreate loan.")
+        
+        # If amount changed, we need to rollback old and apply new
+        if data.total_amount is not None and data.total_amount != tx["total_amount"]:
+            # Rollback old
+            await _apply_transaction_to_loan(
+                conn, tx["loan_id"], user_id, 
+                tx["transaction_type"], tx["total_amount"], 
+                tx["principal_component"], tx["interest_component"], 
+                tx["cash_flow_direction"], undo=True
+            )
+            
+            # Recalculate components based on new amount (simple logic for now)
+            # In a real app, we might need a more complex redistribution logic
+            # For repayment, we'll follow the same logic as process_repayment (interest first)
+            new_total = data.total_amount
+            new_principal = tx["principal_component"]
+            new_interest = tx["interest_component"]
+            
+            if tx["transaction_type"] == TransactionType.REPAYMENT.value:
+                # We'd need current loan state to redo interest calculation accurately, 
+                # but for an edit, let's keep the split or prompt user?
+                # Let's assume the user wants to adjust total and we keep interest same unless total < original interest.
+                if new_total >= tx["interest_component"]:
+                    new_interest = tx["interest_component"]
+                    new_principal = new_total - new_interest
+                else:
+                    new_interest = new_total
+                    new_principal = Decimal('0.00')
+            
+            # Apply new
+            await _apply_transaction_to_loan(
+                conn, tx["loan_id"], user_id, 
+                tx["transaction_type"], new_total, 
+                new_principal, new_interest, 
+                tx["cash_flow_direction"], undo=False
+            )
+            
+            # Update values for DB update
+            tx_update = {
+                "total_amount": new_total,
+                "principal_component": new_principal,
+                "interest_component": new_interest
+            }
+        else:
+            tx_update = {}
+            
+        # Build dynamic update for the transaction record
+        fields = []
+        values = [str(transaction_id)]
+        
+        for k, v in tx_update.items():
+            fields.append(f"{k} = ${len(values)+1}")
+            values.append(v)
+            
+        if data.transaction_date is not None:
+            fields.append(f"transaction_date = ${len(values)+1}")
+            values.append(data.transaction_date)
+        if data.notes is not None:
+            fields.append(f"notes = ${len(values)+1}")
+            values.append(data.notes)
+            
+        if not fields:
+            return LoanTransactionResponse(**dict(tx))
+            
+        query = f"UPDATE lending_transactions SET {', '.join(fields)} WHERE id = $1 RETURNING *"
+        row = await conn.fetchrow(query, *values)
+        return LoanTransactionResponse(**dict(row))
