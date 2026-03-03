@@ -19,6 +19,7 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 
+
 def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
@@ -61,3 +62,6 @@ async def get_current_user(
         raise credentials_exception
         
     return UserResponse(**user_data)
+
+
+

@@ -59,14 +59,11 @@
   }
 }
 
-
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
-
-
 
 html {
   -webkit-text-size-adjust: 100%;
@@ -84,9 +81,9 @@ body {
   touch-action: manipulation;
   overflow-x: hidden;
   line-height: 1.6;
+  margin: 0;
 }
 
-/* Smooth transitions */
 button,
 a,
 input,
@@ -94,14 +91,12 @@ select {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Minimum touch targets */
 button,
 a,
 select {
   min-height: 36px;
 }
 
-/* Better input styling on mobile */
 input,
 select,
 textarea {
@@ -109,7 +104,6 @@ textarea {
   border-radius: 10px;
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -128,26 +122,19 @@ textarea {
   background: var(--color-muted);
 }
 
-/* Selection */
 ::selection {
   background: var(--color-primary);
   color: white;
 }
 
-/* Focus ring utility */
 .focus-ring {
   outline: none;
   box-shadow: 0 0 0 2px var(--color-primary-light), 0 0 0 4px var(--color-primary);
 }
 
-/* Gradient text utility */
 .gradient-text {
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-
-.test {
-  margin-bottom: 100px;
 }

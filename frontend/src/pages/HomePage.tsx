@@ -1,18 +1,17 @@
-"use client";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/lib/auth-context";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
-export default function Home() {
+export default function HomePage() {
   const { user, isLoading } = useAuth();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isLoading) {
-      router.replace(user ? "/dashboard" : "/login");
+      navigate(user ? "/dashboard" : "/login", { replace: true });
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
