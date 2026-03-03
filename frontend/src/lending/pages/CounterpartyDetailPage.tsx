@@ -16,6 +16,22 @@ export default function CounterpartyDetailPage() {
     enabled: !!id,
   });
 
+  const rawLoans = detail?.loans || [];
+
+  const loans = useMemo(() => {
+    let result = [...rawLoans];
+    result.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'date') {
+        comparison = new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+      } else if (sortBy === 'principal') {
+        comparison = Number(a.current_principal) - Number(b.current_principal);
+      }
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+    return result;
+  }, [rawLoans, sortBy, sortOrder]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -33,21 +49,7 @@ export default function CounterpartyDetailPage() {
     );
   }
 
-  const { counterparty, loans: rawLoans } = detail;
-
-  const loans = useMemo(() => {
-    let result = [...rawLoans];
-    result.sort((a, b) => {
-      let comparison = 0;
-      if (sortBy === 'date') {
-        comparison = new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
-      } else if (sortBy === 'principal') {
-        comparison = Number(a.current_principal) - Number(b.current_principal);
-      }
-      return sortOrder === 'desc' ? -comparison : comparison;
-    });
-    return result;
-  }, [rawLoans, sortBy, sortOrder]);
+  const { counterparty } = detail;
 
   const totalLent = loans
     .filter(l => l.type === 'lent')
