@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -12,6 +12,10 @@ export default function ContactDetailPage() {
   const [direction, setDirection] = useState<"credit" | "debit">("credit");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const { data: contact, isLoading: conLoading } = useQuery({
     queryKey: ["contact", id],
@@ -60,6 +64,34 @@ export default function ContactDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["balances"] });
     },
   });
+
+  const filteredAndSortedEntries = useMemo(() => {
+    if (!entries) return [];
+    
+    let result = [...entries];
+
+    // Filter by search
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(e => 
+        (e.note && e.note.toLowerCase().includes(q)) ||
+        e.amount.toString().includes(q)
+      );
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'date') {
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      } else if (sortBy === 'amount') {
+        comparison = Number(a.amount) - Number(b.amount);
+      }
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+
+    return result;
+  }, [entries, searchQuery, sortBy, sortOrder]);
 
   const isLoading = conLoading || balLoading || entLoading;
   const bal = Number(balance?.balance ?? 0);
@@ -230,16 +262,64 @@ export default function ContactDetailPage() {
       <div className="xl:col-span-2">
         <div className="bg-surface rounded-2xl border border-border overflow-hidden"
           style={{ boxShadow: "var(--shadow-card)" }}>
-          <div className="px-6 py-5 border-b border-border">
-            <h2 className="font-semibold text-lg">Transaction History</h2>
+          <div className="px-6 py-5 border-b border-border space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <h2 className="font-semibold text-lg">Transaction History</h2>
+              <div className="flex bg-background border border-border rounded-xl p-1 gap-1">
+                <button 
+                  onClick={() => setSortBy('date')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortBy === 'date' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-surface'}`}
+                >
+                  Date
+                </button>
+                <button 
+                  onClick={() => setSortBy('amount')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortBy === 'amount' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-surface'}`}
+                >
+                  Amount
+                </button>
+                <button 
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="p-1.5 rounded-lg text-muted hover:bg-surface hover:text-primary transition-all border-l border-border ml-1"
+                  title={sortOrder === 'asc' ? "Sort Descending" : "Sort Ascending"}
+                >
+                  {sortOrder === 'asc' ? (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" /></svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" /></svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="relative group max-w-md">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              </span>
+              <input 
+                type="text" 
+                placeholder="Search transactions..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl text-xs focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+              />
+              {searchQuery && (
+                <button 
+                   onClick={() => setSearchQuery("")}
+                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-danger hover:bg-danger/5 px-1.5 py-0.5 rounded transition-all uppercase tracking-widest"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
           </div>
           <div className="divide-y divide-border">
-            {!entries?.length ? (
+            {!filteredAndSortedEntries.length ? (
               <div className="p-10 text-center">
-                <p className="text-muted text-sm">No transactions with this contact yet</p>
+                <p className="text-muted text-sm">{searchQuery ? 'No matching transactions' : 'No transactions with this contact yet'}</p>
               </div>
             ) : (
-              entries.map((e) => (
+              filteredAndSortedEntries.map((e) => (
                 <div key={e.id} className="flex items-center justify-between px-5 py-3.5 group hover:bg-surface-hover active:bg-surface-hover transition-all">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-white"

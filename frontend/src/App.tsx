@@ -8,6 +8,12 @@ import DashboardPage from "./pages/dashboard/DashboardPage";
 import ContactsPage from "./pages/dashboard/ContactsPage";
 import ContactDetailPage from "./pages/dashboard/ContactDetailPage";
 import LedgerPage from "./pages/dashboard/LedgerPage";
+import LendingDashboardPage from "./lending/pages/LendingDashboardPage";
+import CounterpartiesPage from "./lending/pages/CounterpartiesPage";
+import LoansPage from "./lending/pages/LoansPage";
+import NewLoanPage from "./lending/pages/NewLoanPage";
+import LoanDetailPage from "./lending/pages/LoanDetailPage";
+import CounterpartyDetailPage from "./lending/pages/CounterpartyDetailPage";
 
 export default function App() {
   return (
@@ -21,6 +27,14 @@ export default function App() {
         <Route path="contacts" element={<ContactsPage />} />
         <Route path="contacts/:id" element={<ContactDetailPage />} />
         <Route path="ledger" element={<LedgerPage />} />
+        
+        {/* Lending Module Routes */}
+        <Route path="lending" element={<LendingDashboardPage />} />
+        <Route path="lending/counterparties" element={<CounterpartiesPage />} />
+        <Route path="lending/counterparties/:id" element={<CounterpartyDetailPage />} />
+        <Route path="lending/loans" element={<LoansPage />} />
+        <Route path="lending/loans/new" element={<NewLoanPage />} />
+        <Route path="lending/loans/:id" element={<LoanDetailPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
     frontend_url: str
+    database_url: str = "" # Fallback explicitly to empty if not mapped in .env
 
     model_config = {"env_file": ".env"}
 

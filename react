@@ -1,0 +1,30 @@
+[main b554291] next-
+ 35 files changed, 3760 insertions(+), 6513 deletions(-)
+ delete mode 100644 frontend/app/dashboard/contacts/[id]/page.tsx
+ delete mode 100644 frontend/app/dashboard/contacts/page.tsx
+ delete mode 100644 frontend/app/dashboard/layout.tsx
+ delete mode 100644 frontend/app/dashboard/ledger/page.tsx
+ delete mode 100644 frontend/app/dashboard/page.tsx
+ delete mode 100644 frontend/app/favicon.ico
+ delete mode 100644 frontend/app/layout.tsx
+ delete mode 100644 frontend/app/login/page.tsx
+ delete mode 100644 frontend/app/providers.tsx
+ delete mode 100644 frontend/app/register/page.tsx
+ create mode 100644 frontend/index.html
+ delete mode 100644 frontend/next-env.d.ts
+ delete mode 100644 frontend/next.config.ts
+ create mode 100644 frontend/src/App.tsx
+ create mode 100644 frontend/src/layouts/DashboardLayout.tsx
+ create mode 100644 frontend/src/main.tsx
+ rename frontend/{app/page.tsx => src/pages/HomePage.tsx} (69%)
+ create mode 100644 frontend/src/pages/LoginPage.tsx
+ create mode 100644 frontend/src/pages/RegisterPage.tsx
+ create mode 100644 frontend/src/pages/dashboard/ContactDetailPage.tsx
+ create mode 100644 frontend/src/pages/dashboard/ContactsPage.tsx
+ create mode 100644 frontend/src/pages/dashboard/DashboardPage.tsx
+ create mode 100644 frontend/src/pages/dashboard/LedgerPage.tsx
+ create mode 100644 frontend/src/providers.tsx
+ rename frontend/{app => src/styles}/globals.css (93%)
+ create mode 100644 frontend/tsconfig.tsbuildinfo
+ create mode 100644 frontend/vite-env.d.ts
+ create mode 100644 frontend/vite.config.ts
