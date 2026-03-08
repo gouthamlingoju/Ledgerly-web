@@ -45,7 +45,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-        <div className="rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden"
+        <div className="rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden border border-white/20"
           style={{ background: "linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%)" }}>
           <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -mr-6 -mt-6" />
           <div className="absolute bottom-0 left-0 w-16 h-16 rounded-full bg-white/10 -ml-4 -mb-4" />
@@ -62,7 +62,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden"
+        <div className="rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden border border-white/20"
           style={{ background: "linear-gradient(135deg, #ef4444 0%, #f87171 50%, #fca5a5 100%)" }}>
           <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -mr-6 -mt-6" />
           <div className="absolute bottom-0 left-0 w-16 h-16 rounded-full bg-white/10 -ml-4 -mb-4" />
@@ -79,7 +79,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden"
+        <div className="rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden border border-white/20"
           style={{ background: "linear-gradient(135deg, #6366f1 0%, #818cf8 50%, #a5b4fc 100%)" }}>
           <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -mr-6 -mt-6" />
           <div className="absolute bottom-0 left-0 w-16 h-16 rounded-full bg-white/10 -ml-4 -mb-4" />
@@ -96,7 +96,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden"
+        <div className="rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden border border-white/20"
           style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #a78bfa 50%, #c4b5fd 100%)" }}>
           <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -mr-6 -mt-6" />
           <div className="absolute bottom-0 left-0 w-16 h-16 rounded-full bg-white/10 -ml-4 -mb-4" />

@@ -201,7 +201,7 @@ export default function LedgerPage() {
 
       {contactFilter && balance && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="rounded-2xl p-4 sm:p-5 text-white relative overflow-hidden"
+          <div className="rounded-2xl p-4 sm:p-5 text-white relative overflow-hidden border border-white/20"
             style={{ background: "var(--gradient-success)" }}>
             <div className="absolute top-0 right-0 w-14 h-14 rounded-full bg-white/10 -mr-3 -mt-3" />
             <p className="text-xs font-medium opacity-80 mb-1.5">Total Gave</p>
@@ -209,7 +209,7 @@ export default function LedgerPage() {
               ₹{Number(balance.total_credit).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </p>
           </div>
-          <div className="rounded-2xl p-4 sm:p-5 text-white relative overflow-hidden"
+          <div className="rounded-2xl p-4 sm:p-5 text-white relative overflow-hidden border border-white/20"
             style={{ background: "var(--gradient-danger)" }}>
             <div className="absolute top-0 right-0 w-14 h-14 rounded-full bg-white/10 -mr-3 -mt-3" />
             <p className="text-xs font-medium opacity-80 mb-1.5">Total Received</p>
@@ -217,7 +217,7 @@ export default function LedgerPage() {
               ₹{Number(balance.total_debit).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </p>
           </div>
-          <div className="rounded-2xl p-4 sm:p-5 text-white relative overflow-hidden"
+          <div className="rounded-2xl p-4 sm:p-5 text-white relative overflow-hidden border border-white/20"
             style={{ background: Number(balance.balance) >= 0 ? "var(--gradient-success)" : "var(--gradient-danger)" }}>
             <div className="absolute top-0 right-0 w-14 h-14 rounded-full bg-white/10 -mr-3 -mt-3" />
             <p className="text-xs font-medium opacity-80 mb-1.5">Net Balance</p>

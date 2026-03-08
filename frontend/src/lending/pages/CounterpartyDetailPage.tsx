@@ -212,7 +212,7 @@ export default function CounterpartyDetailPage() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-2xl p-5 text-white relative overflow-hidden"
+        <div className="rounded-2xl p-5 text-white relative overflow-hidden border border-white/20"
           style={{ background: "var(--gradient-success)" }}>
           <div className="absolute top-0 right-0 w-16 h-16 rounded-full bg-white/10 -mr-4 -mt-4" />
           <p className="text-xs font-medium opacity-80 mb-1.5">Total Lent (Principal)</p>
@@ -220,7 +220,7 @@ export default function CounterpartyDetailPage() {
             ₹{totalLent.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </p>
         </div>
-        <div className="rounded-2xl p-5 text-white relative overflow-hidden"
+        <div className="rounded-2xl p-5 text-white relative overflow-hidden border border-white/20"
           style={{ background: "var(--gradient-danger)" }}>
           <div className="absolute top-0 right-0 w-16 h-16 rounded-full bg-white/10 -mr-4 -mt-4" />
           <p className="text-xs font-medium opacity-80 mb-1.5">Total Borrowed (Principal)</p>

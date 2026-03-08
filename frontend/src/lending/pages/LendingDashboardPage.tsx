@@ -36,11 +36,11 @@ export default function LendingDashboardPage() {
         <div className="p-10 text-center text-muted">Loading metrics...</div>
       ) : dashboardData && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-2xl p-4 sm:p-5 text-white relative overflow-hidden" style={{ background: "var(--gradient-success)" }}>
+          <div className="rounded-2xl p-4 sm:p-5 text-white relative overflow-hidden border border-white/20" style={{ background: "var(--gradient-success)" }}>
             <p className="text-xs font-medium opacity-80 mb-1.5">Active Lent</p>
             <p className="text-lg sm:text-xl font-bold">₹{Number(dashboardData.active_lent_principal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
           </div>
-          <div className="rounded-2xl p-4 sm:p-5 text-white relative overflow-hidden" style={{ background: "var(--gradient-danger)" }}>
+          <div className="rounded-2xl p-4 sm:p-5 text-white relative overflow-hidden border border-white/20" style={{ background: "var(--gradient-danger)" }}>
             <p className="text-xs font-medium opacity-80 mb-1.5">Active Borrowed</p>
             <p className="text-lg sm:text-xl font-bold">₹{Number(dashboardData.active_borrowed_principal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
           </div>

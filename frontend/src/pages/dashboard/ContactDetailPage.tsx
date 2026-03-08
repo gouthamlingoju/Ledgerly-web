@@ -162,7 +162,7 @@ export default function ContactDetailPage() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8 items-start">
         <div className="xl:col-span-1 xl:sticky xl:top-24 space-y-6 xl:order-last">
           <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-4">
-            <div className="rounded-2xl p-5 text-white relative overflow-hidden"
+            <div className="rounded-2xl p-5 text-white relative overflow-hidden border border-white/20"
               style={{ background: bal >= 0 ? "var(--gradient-success)" : "var(--gradient-danger)" }}>
               <div className="absolute top-0 right-0 w-16 h-16 rounded-full bg-white/10 -mr-4 -mt-4" />
               <p className="text-xs font-medium opacity-80 mb-1.5">Net Balance</p>

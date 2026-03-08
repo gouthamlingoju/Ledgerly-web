@@ -472,7 +472,7 @@ export default function LoanDetailPage() {
                ) : <p className="text-xs text-muted italic">Counterparty details not available</p>}
             </div>
 
-            <div className="bg-indigo-600 rounded-2xl p-6 text-white relative overflow-hidden">
+            <div className="bg-indigo-600 rounded-2xl p-6 text-white relative overflow-hidden border border-white/20">
                 <div className="relative z-10">
                    <h3 className="text-lg font-black mb-1">Structured Note</h3>
                    <p className="text-xs opacity-90 leading-relaxed">
