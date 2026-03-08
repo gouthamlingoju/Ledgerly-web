@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { contactsApi, ledgerApi } from "@/lib/api";
+import { CreateContactModal } from "@/src/components/CreateContactModal";
 
 export default function LedgerPage() {
   const queryClient = useQueryClient();
@@ -15,6 +16,7 @@ export default function LedgerPage() {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDirection, setFilterDirection] = useState<'all' | 'credit' | 'debit'>('all');
@@ -252,17 +254,31 @@ export default function LedgerPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1.5">Contact</label>
-                  <select
-                    value={contactId}
-                    onChange={(e) => setContactId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm disabled:opacity-50"
-                    disabled={!!isEditingEntry}
-                  >
-                    <option value="">Select contact...</option>
-                    {contacts?.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                  <div className="flex gap-2">
+                    <select
+                      value={contactId}
+                      onChange={(e) => setContactId(e.target.value)}
+                      className="flex-1 px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm disabled:opacity-50"
+                      disabled={!!isEditingEntry}
+                    >
+                      <option value="">Select contact...</option>
+                      {contacts?.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    {!isEditingEntry && (
+                      <button
+                        type="button"
+                        onClick={() => setIsContactModalOpen(true)}
+                        className="p-3 rounded-xl bg-surface border border-border text-primary hover:bg-primary-light transition-all shadow-sm"
+                        title="Create New Contact"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -488,6 +504,12 @@ export default function LedgerPage() {
           </div>
         </div>
       </div>
+
+      <CreateContactModal 
+        isOpen={isContactModalOpen} 
+        onClose={() => setIsContactModalOpen(false)} 
+        onSuccess={(id) => setContactId(id)}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { ThemeToggle } from "@/src/components/ThemeToggle";
 
 import { useAuth } from "@/lib/auth-context";
 
@@ -157,6 +158,8 @@ export default function DashboardLayout() {
               </nav>
             </div>
             <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <div className="w-px h-6 bg-border hidden sm:block" />
               <div className="flex items-center gap-2.5">
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white"

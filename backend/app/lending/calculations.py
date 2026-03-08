@@ -15,15 +15,31 @@ def calculate_daily_interest(current_principal: Decimal, monthly_interest_rate_p
 
 def calculate_accrued_interest(daily_interest: Decimal, cycle_start_date: date, evaluation_date: date) -> Decimal:
     """
-    accrued_interest = daily_interest * days_elapsed
-    days_elapsed = today - cycle_start_date
+    Calculates interest based on full months (30 days each) + remainder days.
+    A full month is defined as the same date in the next month.
     """
-    days_elapsed = (evaluation_date - cycle_start_date).days
+    from dateutil.relativedelta import relativedelta
     
-    if days_elapsed <= 0:
+    if evaluation_date <= cycle_start_date:
         return Decimal('0.00')
+
+    total_equivalent_days = 0
+    temp_date = cycle_start_date
+    
+    # Count full months as 30 days each
+    while True:
+        next_month = temp_date + relativedelta(months=1)
+        if next_month <= evaluation_date:
+            total_equivalent_days += 30
+            temp_date = next_month
+        else:
+            break
+            
+    # Add remaining days
+    remainder_days = (evaluation_date - temp_date).days
+    total_equivalent_days += remainder_days
         
-    accrued = daily_interest * Decimal(str(days_elapsed))
+    accrued = daily_interest * Decimal(str(total_equivalent_days))
     return accrued.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
 def compute_interest_snapshot(current_principal: Decimal, monthly_interest_rate_pct: Decimal, cycle_start_date: date, evaluation_date: date) -> dict:

@@ -12,7 +12,16 @@ async def init_db_pool():
     # fallback to build from supabase_url and db pass if not explicitly provided
     # However we rely on the defined setting.
     if settings.database_url:
-        db_pool = await asyncpg.create_pool(settings.database_url, min_size=1, max_size=10)
+        import os
+        ssl_mode = 'require' if os.getenv("DATABASE_SSL", "false").lower() == "true" else None
+        
+        db_pool = await asyncpg.create_pool(
+            settings.database_url,
+            min_size=1,
+            max_size=10,
+            command_timeout=60,
+            ssl=ssl_mode
+        )
     else:
         print("WARNING: database_url is not set. Lending module DB operations will fail.")
 

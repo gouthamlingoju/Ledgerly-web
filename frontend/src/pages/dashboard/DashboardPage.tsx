@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 import { contactsApi, ledgerApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -108,6 +109,71 @@ export default function DashboardPage() {
             </div>
             <p className="text-xl sm:text-2xl font-bold">{isLoading ? "—" : contactCount}</p>
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+        <div className="lg:col-span-1 bg-surface rounded-2xl border border-border p-6 flex flex-col items-center justify-center min-h-[300px]" style={{ boxShadow: "var(--shadow-card)" }}>
+          <h3 className="font-semibold text-base mb-4 w-full text-left">Balance Distribution</h3>
+          {isLoading ? (
+             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Owed to You', value: totalOwed },
+                    { name: 'You Owe', value: totalOwe }
+                  ].filter(d => d.value > 0)}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  <Cell fill="#10b981" />
+                  <Cell fill="#ef4444" />
+                </Pie>
+                <Tooltip 
+                  formatter={(value: any) => `₹${Number(value).toLocaleString("en-IN")}`}
+                  contentStyle={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '12px' }}
+                />
+                <Legend iconType="circle" />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        <div className="lg:col-span-2 bg-surface rounded-2xl border border-border p-6 flex flex-col justify-center" style={{ boxShadow: "var(--shadow-card)" }}>
+           <h3 className="font-semibold text-base mb-2">Financial Health</h3>
+           <p className="text-sm text-muted mb-6">
+             {netBalance > 0 
+               ? "Great job! You have a positive net balance. Most of your capital is in circulation with contacts." 
+               : netBalance < 0 
+                 ? "You have some outstanding debts. Consider settling your balances soon." 
+                 : "Your finances are perfectly balanced. Add some contacts or loans to get started."}
+           </p>
+           <div className="space-y-4">
+              <div className="space-y-1.5">
+                 <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+                    <span className="text-success">Owed to You</span>
+                    <span>{Math.round(totalOwed / (totalOwed + totalOwe || 1) * 100)}%</span>
+                 </div>
+                 <div className="h-2 w-full bg-background rounded-full overflow-hidden">
+                    <div className="h-full bg-success transition-all duration-1000" style={{ width: `${totalOwed / (totalOwed + totalOwe || 1) * 100}%` }} />
+                 </div>
+              </div>
+              <div className="space-y-1.5">
+                 <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+                    <span className="text-danger">You Owe</span>
+                    <span>{Math.round(totalOwe / (totalOwed + totalOwe || 1) * 100)}%</span>
+                 </div>
+                 <div className="h-2 w-full bg-background rounded-full overflow-hidden">
+                    <div className="h-full bg-danger transition-all duration-1000" style={{ width: `${totalOwe / (totalOwed + totalOwe || 1) * 100}%` }} />
+                 </div>
+              </div>
+           </div>
         </div>
       </div>
 

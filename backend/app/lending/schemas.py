@@ -110,6 +110,11 @@ class RepaymentRequest(BaseModel):
     notes: Optional[str] = None
 
 class ExtensionRequest(BaseModel):
+    is_interest_paid: bool = False
+    accrued_interest_override: Optional[Decimal] = None
+    new_interest_rate: Optional[Decimal] = None
+    new_duration_months: Optional[int] = None
+    transaction_date: date
     notes: Optional[str] = None
 
 class SettlementRequest(BaseModel):

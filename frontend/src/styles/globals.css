@@ -1,62 +1,94 @@
 @import "tailwindcss";
 
-@theme inline {
+/* 
+  Tailwind 4 Theme Configuration
+  We map Tailwind utility namespaces to CSS variables for dynamic switching.
+*/
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-primary: #6366f1;
-  --color-primary-hover: #4f46e5;
-  --color-primary-light: #eef2ff;
-  --color-surface: #ffffff;
-  --color-surface-hover: #f8fafc;
-  --color-border: #e2e8f0;
-  --color-muted: #64748b;
-  --color-danger: #ef4444;
-  --color-danger-hover: #dc2626;
-  --color-success: #10b981;
-  --color-success-hover: #059669;
-  --color-success-light: #ecfdf5;
-  --color-danger-light: #fef2f2;
-  --color-warning: #f59e0b;
-  --color-warning-light: #fffbeb;
-  --color-accent: #8b5cf6;
-  --color-accent-light: #f5f3ff;
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-success: var(--success);
+  --color-success-hover: var(--success-hover);
+  --color-success-light: var(--success-light);
+  --color-danger-light: var(--danger-light);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
 }
 
 :root {
+  /* Core Colors - Light Theme */
   --background: #f0f2f5;
   --foreground: #0f172a;
+  --surface: #ffffff;
+  --surface-hover: #f8fafc;
+  --border: #e2e8f0;
+  --muted: #64748b;
+  
+  /* Status Colors (shared or slightly varied) */
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --primary-light: #eef2ff;
+  
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --danger-light: #fef2f2;
+  
+  --success: #10b981;
+  --success-hover: #059669;
+  --success-light: #ecfdf5;
+  
+  --warning: #f59e0b;
+  --warning-light: #fffbeb;
+  
+  --accent: #8b5cf6;
+  --accent-light: #f5f3ff;
+
+  /* Utilities */
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
   --gradient-danger: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
   --gradient-accent: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+  
   --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
   --shadow-card-hover: 0 4px 12px 0 rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
   --shadow-elevated: 0 10px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0f1a;
-    --foreground: #e2e8f0;
-    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.2);
-    --shadow-card-hover: 0 4px 12px 0 rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-    --shadow-elevated: 0 10px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.3);
-  }
+.dark {
+  /* Core Colors - Dark Theme */
+  --background: #0a0f1a;
+  --foreground: #e2e8f0;
+  --surface: #141c2b;
+  --surface-hover: #1c2840;
+  --border: #1e2d42;
+  --muted: #94a3b8;
+  
+  /* Status Color Overrides for Dark Mode */
+  --primary-light: #1e1b4b;
+  --success-light: #064e3b;
+  --danger-light: #450a0a;
+  --warning-light: #451a03;
+  --accent-light: #2e1065;
 
-  @theme inline {
-    --color-surface: #141c2b;
-    --color-surface-hover: #1c2840;
-    --color-border: #1e2d42;
-    --color-muted: #94a3b8;
-    --color-primary-light: #1e1b4b;
-    --color-success-light: #064e3b;
-    --color-danger-light: #450a0a;
-    --color-warning-light: #451a03;
-    --color-accent-light: #2e1065;
-  }
+  /* Shadow Overrides for Dark Mode */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.2);
+  --shadow-card-hover: 0 4px 12px 0 rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-elevated: 0 10px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.3);
 }
 
 *,
@@ -74,7 +106,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
@@ -82,19 +114,15 @@ body {
   overflow-x: hidden;
   line-height: 1.6;
   margin: 0;
+  min-height: 100vh;
 }
 
 button,
 a,
 input,
-select {
+select,
+textarea {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-button,
-a,
-select {
-  min-height: 36px;
 }
 
 input,
@@ -114,22 +142,22 @@ textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: var(--border);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-muted);
+  background: var(--muted);
 }
 
 ::selection {
-  background: var(--color-primary);
+  background: var(--primary);
   color: white;
 }
 
 .focus-ring {
   outline: none;
-  box-shadow: 0 0 0 2px var(--color-primary-light), 0 0 0 4px var(--color-primary);
+  box-shadow: 0 0 0 2px var(--primary-light), 0 0 0 4px var(--primary);
 }
 
 .gradient-text {

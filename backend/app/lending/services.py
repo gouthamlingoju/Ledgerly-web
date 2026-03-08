@@ -177,45 +177,79 @@ async def process_repayment(conn: asyncpg.Connection, user_id: UUID, loan_id: UU
         return LoanResponse(**dict(updated_loan))
 
 async def process_manual_extension(conn: asyncpg.Connection, user_id: UUID, loan_id: UUID, data: ExtensionRequest) -> LoanResponse:
-    today = date.today()
     async with conn.transaction():
         loan = await _get_loan_for_update(conn, loan_id, user_id)
         
+        # 1. Calculate Interest
         calc = compute_interest_snapshot(
             current_principal=loan["current_principal"],
             monthly_interest_rate_pct=loan["interest_rate"],
             cycle_start_date=loan["cycle_start_date"],
-            evaluation_date=today
+            evaluation_date=data.transaction_date
         )
-        # Calculate net accrued interest (Subtracting what was already paid in this cycle)
+        
+        # Use override if provided, else use calculated net accrued
         accrued = calc["accrued_interest"]
         net_accrued = max(Decimal('0.00'), accrued - loan["interest_paid_in_cycle"])
+        interest_amount = data.accrued_interest_override if data.accrued_interest_override is not None else net_accrued
         
-        # Monthly duration logic: extend from current due date
-        base_date = max(loan["due_date"], today)
-        new_due_date = base_date + relativedelta(months=loan["duration_months"])
+        new_principal = loan["current_principal"]
+        
+        # 2. Handle Interest Payment or Capitalization
+        if data.is_interest_paid:
+            # Record Repayment for Interest
+            # Direction: IN_FL if lent, OUT if borrowed
+            direction = CashFlowDirection.IN_FL.value if loan["type"] == 'lent' else CashFlowDirection.OUT.value
+            await conn.execute("""
+                INSERT INTO lending_transactions (
+                    loan_id, user_id, transaction_type, cash_flow_direction,
+                    total_amount, principal_component, interest_component, transaction_date, notes
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            """, loan["id"], str(user_id), TransactionType.REPAYMENT.value, direction,
+                interest_amount, Decimal('0.00'), interest_amount, data.transaction_date, f"Interest paid for extension: {data.notes or ''}")
+            
+            # Update running totals
+            await conn.execute("""
+                UPDATE lending_loans SET 
+                    total_interest_paid = total_interest_paid + $1
+                WHERE id = $2
+            """, interest_amount, loan["id"])
+        else:
+            # Capitalize Interest
+            new_principal += interest_amount
+            await conn.execute("""
+                INSERT INTO lending_transactions (
+                    loan_id, user_id, transaction_type, cash_flow_direction,
+                    total_amount, principal_component, interest_component, transaction_date, notes
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            """, loan["id"], str(user_id), TransactionType.CAPITALIZATION.value, CashFlowDirection.NONE.value,
+                interest_amount, interest_amount, interest_amount, data.transaction_date, f"Interest capitalized: {data.notes or ''}")
+            
+            await conn.execute("""
+                UPDATE lending_loans SET 
+                    total_interest_capitalized = total_interest_capitalized + $1
+                WHERE id = $2
+            """, interest_amount, loan["id"])
 
-        # Update loan (Capitalize UNPAID interest! RE-BASE cycle_start_date)
-        new_principal = loan["current_principal"] + net_accrued
+        # 3. Update Terms and Extend
+        new_rate = data.new_interest_rate if data.new_interest_rate is not None else loan["interest_rate"]
+        new_months = data.new_duration_months if data.new_duration_months is not None else loan["duration_months"]
+        
+        # New due date calculated from the extension transaction date (or original due date if later)
+        base_date = max(loan["due_date"], data.transaction_date)
+        new_due_date = base_date + relativedelta(months=new_months)
+
         updated_loan = await conn.fetchrow("""
             UPDATE lending_loans SET 
                 current_principal = $1,
-                total_interest_capitalized = total_interest_capitalized + $2,
+                interest_rate = $2,
+                duration_months = $3,
                 interest_paid_in_cycle = 0,
-                cycle_start_date = $3,
-                due_date = $4
-            WHERE id = $5
+                cycle_start_date = $4,
+                due_date = $5
+            WHERE id = $6
             RETURNING *
-        """, new_principal, net_accrued, today, new_due_date, loan["id"])
-
-        # Insert Transaction
-        await conn.execute("""
-            INSERT INTO lending_transactions (
-                loan_id, user_id, transaction_type, cash_flow_direction,
-                total_amount, principal_component, interest_component, transaction_date, notes
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        """, loan["id"], str(user_id), TransactionType.CAPITALIZATION.value, CashFlowDirection.NONE.value,
-            net_accrued, net_accrued, net_accrued, today, data.notes)
+        """, new_principal, new_rate, new_months, data.transaction_date, new_due_date, loan["id"])
 
         return LoanResponse(**dict(updated_loan))
 

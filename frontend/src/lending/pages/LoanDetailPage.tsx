@@ -29,6 +29,11 @@ export default function LoanDetailPage() {
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isEditingTx, setIsEditingTx] = useState<any | null>(null);
+  const [showExtensionModal, setShowExtensionModal] = useState(false);
+  const [extIsPaid, setExtIsPaid] = useState<boolean>(false);
+  const [extInterestOverride, setExtInterestOverride] = useState<string>('');
+  const [extRate, setExtRate] = useState<string>('');
+  const [extDuration, setExtDuration] = useState<string>('');
 
   const isLent = loan?.type === 'lent';
 
@@ -61,11 +66,58 @@ export default function LoanDetailPage() {
     });
   };
 
-  const handleExtension = () => {
-    if (!window.confirm("This will capitalize current accrued interest and extend the due date by the original duration. Proceed?")) return;
-    extensionMutation.mutate({ notes: "Manual extension" }, {
+  const handleExtension = (e: React.FormEvent) => {
+    e.preventDefault();
+    extensionMutation.mutate({
+      is_interest_paid: extIsPaid,
+      accrued_interest_override: extInterestOverride ? parseFloat(extInterestOverride) : undefined,
+      new_interest_rate: extRate ? parseFloat(extRate) : undefined,
+      new_duration_months: extDuration ? parseInt(extDuration) : undefined,
+      transaction_date: date,
+      notes: notes || undefined
+    }, {
+      onSuccess: () => { 
+        setShowExtensionModal(false); 
+        setNotes(""); 
+        setExtInterestOverride("");
+        setExtRate("");
+        setExtDuration("");
+        setError(null); 
+      },
       onError: (err: any) => setError(err.response?.data?.detail || "Extension failed")
     });
+  };
+
+  const openExtensionModal = () => {
+    if (!loan) return;
+    
+    // Calculate live interest for the default override
+    const daily = (Number(loan.current_principal) * (Number(loan.interest_rate) / 100)) / 30;
+    
+    // Month-based logic for default value
+    let totalEquivalentDays = 0;
+    let tempDate = new Date(loan.cycle_start_date);
+    const evalDate = new Date();
+    
+    while (true) {
+        const nextMonth = new Date(tempDate);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        if (nextMonth <= evalDate) {
+            totalEquivalentDays += 30;
+            tempDate = nextMonth;
+        } else {
+            break;
+        }
+    }
+    totalEquivalentDays += Math.max(0, Math.floor((evalDate.getTime() - tempDate.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    const calculatedNet = Math.max(0, (daily * totalEquivalentDays) - Number(loan.interest_paid_in_cycle));
+    
+    setExtInterestOverride(calculatedNet.toFixed(2));
+    setExtRate(loan.interest_rate.toString());
+    setExtDuration(loan.duration_months.toString());
+    setDate(new Date().toISOString().split('T')[0]);
+    setShowExtensionModal(true);
   };
 
   const handleUpdateLoan = async (e: React.FormEvent) => {
@@ -178,6 +230,53 @@ export default function LoanDetailPage() {
                         {new Date(loan.due_date).toLocaleDateString()}
                      </p>
                   </div>
+
+                  {/* New Metrics */}
+                  {loan.status !== 'closed' && loan.status !== 'settled' && (
+                    <>
+                      <div className="pt-2 border-t border-border/30 col-span-full"></div>
+                      <div>
+                        <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Accrued Interest (Live)</p>
+                        <p className="font-bold text-sm text-primary">
+                          ₹{(() => {
+                            const daily = (Number(loan.current_principal) * (Number(loan.interest_rate) / 100)) / 30;
+                            
+                            // Repeat our month-based logic for display
+                            let totalEquivalentDays = 0;
+                            let tempDate = new Date(loan.cycle_start_date);
+                            const evalDate = new Date();
+                            
+                            while (true) {
+                                const nextMonth = new Date(tempDate);
+                                nextMonth.setMonth(nextMonth.getMonth() + 1);
+                                if (nextMonth <= evalDate) {
+                                    totalEquivalentDays += 30;
+                                    tempDate = nextMonth;
+                                } else {
+                                    break;
+                                }
+                            }
+                            totalEquivalentDays += Math.max(0, Math.floor((evalDate.getTime() - tempDate.getTime()) / (1000 * 60 * 60 * 24)));
+                            
+                            const accruedInterest = daily * totalEquivalentDays;
+                            return accruedInterest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                          })()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1">Expected Total returns</p>
+                        <p className="font-bold text-sm text-indigo-600">
+                          ₹{(() => {
+                            const daily = (Number(loan.current_principal) * (Number(loan.interest_rate) / 100)) / 30;
+                            const totalDays = Math.max(0, Math.ceil((new Date(loan.due_date).getTime() - new Date(loan.cycle_start_date).getTime()) / (1000 * 60 * 60 * 24)));
+                            const totalExpected = Number(loan.current_principal) + (daily * totalDays);
+                            return totalExpected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                          })()}
+                        </p>
+                        <p className="text-[9px] text-muted italic">on {new Date(loan.due_date).toLocaleDateString()}</p>
+                      </div>
+                    </>
+                  )}
                </div>
             </div>
 
@@ -217,14 +316,14 @@ export default function LoanDetailPage() {
                             <button type="submit" disabled={repaymentMutation.isPending} className="px-8 py-3 rounded-xl bg-primary text-white font-bold hover:opacity-90 transition-all disabled:opacity-50">
                                {repaymentMutation.isPending ? "Recording..." : "Record Repayment"}
                             </button>
-                            <button 
-                              type="button"
-                              onClick={handleExtension}
-                              disabled={extensionMutation.isPending || loan.status === 'settled' || loan.status === 'closed'}
-                              className="px-6 py-2.5 rounded-xl bg-background border border-border font-bold text-primary hover:bg-primary/5 transition-all disabled:opacity-50"
-                            >
-                               Extend & Capitalize
-                            </button>
+                             <button 
+                               type="button"
+                               onClick={openExtensionModal}
+                               disabled={extensionMutation.isPending || loan.status === 'settled' || loan.status === 'closed'}
+                               className="px-6 py-2.5 rounded-xl bg-background border border-border font-bold text-primary hover:bg-primary/5 transition-all disabled:opacity-50"
+                             >
+                                Extend Loan
+                             </button>
                             <button 
                                type="button"
                                onClick={handleDeleteLoan}
@@ -385,34 +484,67 @@ export default function LoanDetailPage() {
          </div>
        </div>
 
-       {/* Edit Transaction Modal */}
-       {isEditingTx && (
+        {/* Extension Modal */}
+        {showExtensionModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-             <div className="bg-surface w-full max-w-md rounded-2xl border border-border p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
-                <h3 className="text-xl font-bold mb-4">Edit Transaction</h3>
-                <form onSubmit={handleUpdateTransaction} className="space-y-4">
-                   <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Total Amount (₹)</label>
-                      <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20" required />
+             <div className="bg-surface w-full max-w-lg rounded-2xl border border-border p-6 sm:p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold">Extension Details</h3>
+                  <button onClick={() => setShowExtensionModal(false)} className="text-muted hover:text-foreground">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+                
+                <form onSubmit={handleExtension} className="space-y-5">
+                   <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 mb-2">
+                      <p className="text-xs font-bold text-primary uppercase tracking-tight mb-2">Interest Payment Status</p>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input type="radio" checked={extIsPaid} onChange={() => setExtIsPaid(true)} className="w-4 h-4 accent-primary" />
+                          <span className={`text-sm font-semibold transition-colors ${extIsPaid ? 'text-primary' : 'text-muted group-hover:text-foreground'}`}>Interest Paid</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input type="radio" checked={!extIsPaid} onChange={() => setExtIsPaid(false)} className="w-4 h-4 accent-primary" />
+                          <span className={`text-sm font-semibold transition-colors ${!extIsPaid ? 'text-primary' : 'text-muted group-hover:text-foreground'}`}>Add to Principal</span>
+                        </label>
+                      </div>
                    </div>
-                   <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Date</label>
-                      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20" required />
+
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Accrued Interest (₹)</label>
+                        <input type="number" step="0.01" value={extInterestOverride} onChange={(e) => setExtInterestOverride(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20" required />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Extension Date</label>
+                        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20" required />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest">New Int. Rate (% / mo)</label>
+                        <input type="number" step="0.01" value={extRate} onChange={(e) => setExtRate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20" required />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Extension Duration (Months)</label>
+                        <input type="number" value={extDuration} onChange={(e) => setExtDuration(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20" required />
+                      </div>
                    </div>
+
                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Notes</label>
-                      <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20" />
+                      <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Extension Notes</label>
+                      <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-border bg-background outline-none focus:ring-2 focus:ring-primary/20" placeholder="e.g. Extended on request" />
                    </div>
-                   <div className="flex gap-3 pt-4">
-                      <button type="button" onClick={() => setIsEditingTx(null)} className="flex-1 px-4 py-2.5 rounded-xl border border-border font-bold hover:bg-muted/5">Cancel</button>
-                      <button type="submit" disabled={updateTxMutation.isPending} className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white font-bold hover:opacity-90 disabled:opacity-50">
-                         {updateTxMutation.isPending ? "Saving..." : "Save Changes"}
+
+                   <div className="flex gap-3 pt-2">
+                      <button type="button" onClick={() => setShowExtensionModal(false)} className="flex-1 px-4 py-3 rounded-xl border border-border font-bold hover:bg-muted/5 transition-all">Cancel</button>
+                      <button type="submit" disabled={extensionMutation.isPending} className="flex-1 px-4 py-3 rounded-xl bg-primary text-white font-bold hover:opacity-90 disabled:opacity-50 transition-all shadow-lg shadow-primary/20">
+                         {extensionMutation.isPending ? "Processing..." : "Confirm Extension"}
                       </button>
                    </div>
+                   {error && <p className="text-xs font-bold text-danger text-center">{error}</p>}
                 </form>
              </div>
           </div>
-       )}
+        )}
     </div>
   );
 }
