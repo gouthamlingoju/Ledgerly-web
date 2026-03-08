@@ -34,6 +34,7 @@ export interface Loan {
   status: LoanStatus;
   total_interest_paid: string;
   total_interest_capitalized: string;
+  interest_paid_in_cycle: string;
   settlement_amount: string | null;
   settlement_difference: string | null;
   created_at: string;
