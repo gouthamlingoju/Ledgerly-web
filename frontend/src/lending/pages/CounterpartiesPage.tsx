@@ -275,7 +275,7 @@ export default function CounterpartiesPage() {
                   <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0" style={{ background: gradient }}>
                     {cp.name.slice(0, 2).toUpperCase()}
                   </div>
-                  <Link to={`/dashboard/lending/counterparties/${cp.id}`} className="min-w-0 flex-1 hover:text-primary transition-colors">
+                  <Link to={`/lending/counterparties/${cp.id}`} className="min-w-0 flex-1 hover:text-primary transition-colors">
                     <p className="font-bold text-sm truncate">{cp.name}</p>
                     {cp.phone && <p className="text-[11px] text-muted mt-0.5 truncate">{cp.phone}</p>}
                   </Link>
@@ -323,7 +323,7 @@ export default function CounterpartiesPage() {
                           <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0" style={{ background: gradient }}>
                             {cp.name.slice(0, 2).toUpperCase()}
                           </div>
-                          <Link to={`/dashboard/lending/counterparties/${cp.id}`} className="font-bold hover:text-primary transition-colors">{cp.name}</Link>
+                          <Link to={`/lending/counterparties/${cp.id}`} className="font-bold hover:text-primary transition-colors">{cp.name}</Link>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-muted text-xs">{cp.phone || "—"}</td>

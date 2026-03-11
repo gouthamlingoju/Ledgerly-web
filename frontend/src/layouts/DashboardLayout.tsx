@@ -31,27 +31,7 @@ export default function DashboardLayout() {
 
   const navItems = [
     {
-      href: "/dashboard",
-      label: "Home",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.8}
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4"
-          />
-        </svg>
-      ),
-      exact: true,
-    },
-    {
-      href: "/dashboard/lending",
+      href: "/lending",
       label: "Lending",
       icon: (
         <svg
@@ -71,7 +51,7 @@ export default function DashboardLayout() {
       exact: false,
     },
     {
-      href: "/dashboard/ledger",
+      href: "/ledger",
       label: "Ledger",
       icon: (
         <svg
@@ -107,7 +87,7 @@ export default function DashboardLayout() {
         <div className="max-w-[2400px] mx-auto px-4 sm:px-6 lg:px-12">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-10">
-              <Link to="/dashboard" className="flex items-center gap-2.5 group">
+              <Link to="/ledger" className="flex items-center gap-2.5 group">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg">
                   <span className="text-white text-4xl">📒</span>
                 </div>
@@ -117,22 +97,12 @@ export default function DashboardLayout() {
               </Link>
               <nav className="hidden sm:flex items-center gap-2 p-1 bg-surface-hover/50 rounded-2xl border border-border/50">
                 <Link
-                  to="/dashboard"
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${pathname === "/dashboard"
-                      ? "bg-surface shadow-sm text-foreground"
-                      : "text-muted hover:text-foreground"
+                  to="/lending"
+                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all ${pathname.startsWith("/lending")
+                    ? "text-white shadow-md ring-1 ring-black/5"
+                    : "text-muted hover:text-foreground hover:bg-surface/80"
                     }`}
-                >
-                  Home
-                </Link>
-                <div className="w-px h-5 bg-border/80 mx-1" />
-                <Link
-                  to="/dashboard/lending"
-                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all ${pathname.startsWith("/dashboard/lending")
-                      ? "text-white shadow-md ring-1 ring-black/5"
-                      : "text-muted hover:text-foreground hover:bg-surface/80"
-                    }`}
-                  style={pathname.startsWith("/dashboard/lending") ? { background: "var(--gradient-primary)" } : {}}
+                  style={pathname.startsWith("/lending") ? { background: "var(--gradient-primary)" } : {}}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -140,12 +110,12 @@ export default function DashboardLayout() {
                   Lending
                 </Link>
                 <Link
-                  to="/dashboard/contacts"
-                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all ${pathname.startsWith("/dashboard/contacts") || pathname.startsWith("/dashboard/ledger")
-                      ? "text-white shadow-md ring-1 ring-black/5"
-                      : "text-muted hover:text-foreground hover:bg-surface/80"
+                  to="/ledger"
+                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all ${pathname.startsWith("/ledger")
+                    ? "text-white shadow-md ring-1 ring-black/5"
+                    : "text-muted hover:text-foreground hover:bg-surface/80"
                     }`}
-                  style={pathname.startsWith("/dashboard/contacts") || pathname.startsWith("/dashboard/ledger") ? { background: "var(--gradient-accent)" } : {}}
+                  style={pathname.startsWith("/ledger") ? { background: "var(--gradient-accent)" } : {}}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -200,8 +170,8 @@ export default function DashboardLayout() {
               key={item.href}
               to={item.href}
               className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[11px] font-semibold transition-all ${isActive(item)
-                  ? "text-primary"
-                  : "text-muted active:text-foreground"
+                ? "text-primary"
+                : "text-muted active:text-foreground"
                 }`}
             >
               <div

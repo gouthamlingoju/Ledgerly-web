@@ -39,7 +39,7 @@ export default function NewLoanPage() {
       start_date: start_date,
       duration_months: parseInt(duration_months),
     }, {
-      onSuccess: () => navigate("/dashboard/lending/loans"),
+      onSuccess: () => navigate("/lending/loans"),
       onError: (err: any) => {
         console.error(err);
         setError("Failed to create loan. " + (err.response?.data?.detail || ""));
@@ -51,7 +51,7 @@ export default function NewLoanPage() {
     <div className="max-w-3xl mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Issue New Loan</h1>
-        <Link to="/dashboard/lending/loans" className="text-sm font-medium text-muted hover:text-foreground">
+        <Link to="/lending/loans" className="text-sm font-medium text-muted hover:text-foreground">
           Cancel
         </Link>
       </div>
@@ -168,7 +168,7 @@ export default function NewLoanPage() {
         </div>
 
         <div className="pt-4 flex justify-end gap-3">
-          <Link to="/dashboard/lending/loans" className="px-6 py-2.5 rounded-xl text-sm font-semibold text-muted hover:bg-background transition-all">
+          <Link to="/lending/loans" className="px-6 py-2.5 rounded-xl text-sm font-semibold text-muted hover:bg-background transition-all">
             Cancel
           </Link>
           <button

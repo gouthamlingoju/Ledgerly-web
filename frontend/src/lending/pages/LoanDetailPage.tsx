@@ -145,7 +145,7 @@ export default function LoanDetailPage() {
   const handleDeleteLoan = () => {
     if (!window.confirm("Are you sure? This will delete the loan and ALL associated transactions permanently.")) return;
     deleteLoanMutation.mutate(id!, {
-      onSuccess: () => { window.location.href = "/dashboard/lending/loans"; },
+      onSuccess: () => { window.location.href = "/lending/loans"; },
       onError: (err: any) => setError(err.response?.data?.detail || "Delete failed")
     });
   };
@@ -184,7 +184,7 @@ export default function LoanDetailPage() {
     <SidebarLayout items={lendingSidebarItems}>
       <div className="space-y-6 sm:space-y-8 max-w-5xl mx-auto">
         <div className="flex items-center gap-4">
-          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate('/dashboard/lending/loans')} className="p-2 cursor-pointer rounded-full hover:bg-surface border border-transparent hover:border-border transition-all">
+          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate('/lending/loans')} className="p-2 cursor-pointer rounded-full hover:bg-surface border border-transparent hover:border-border transition-all">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           </button>
           <div>
@@ -468,7 +468,7 @@ export default function LoanDetailPage() {
                       <p className="text-sm font-semibold">{counterparty.phone}</p>
                     </div>
                   )}
-                  <Link to={`/dashboard/lending/counterparties`} className="block text-xs text-primary font-bold mt-4 hover:underline">
+                  <Link to={`/lending/counterparties`} className="block text-xs text-primary font-bold mt-4 hover:underline">
                     View All Counterparties →
                   </Link>
                 </div>

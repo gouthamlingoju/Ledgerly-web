@@ -130,7 +130,7 @@ export default function ContactDetailPage() {
     <SidebarLayout items={ledgerSidebarItems}>
       <div className="space-y-6 sm:space-y-8">
         <div>
-          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate('/dashboard/contacts')} className="inline-flex items-center gap-1.5 text-sm cursor-pointer text-muted hover:text-primary active:text-primary transition-all mb-4 px-1 py-1 -ml-1">
+          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate('/ledger/contacts')} className="inline-flex items-center gap-1.5 text-sm cursor-pointer text-muted hover:text-primary active:text-primary transition-all mb-4 px-1 py-1 -ml-1">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
@@ -155,7 +155,7 @@ export default function ContactDetailPage() {
                   contactsApi.delete(id).then(() => {
                     queryClient.invalidateQueries({ queryKey: ["contacts"] });
                     queryClient.invalidateQueries({ queryKey: ["balances"] });
-                    navigate("/dashboard/contacts");
+                    navigate("/ledger/contacts");
                   });
                 }
               }}

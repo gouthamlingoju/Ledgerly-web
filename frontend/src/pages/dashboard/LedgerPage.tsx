@@ -480,7 +480,7 @@ export default function LedgerPage() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 text-sm flex-wrap">
                           <Link
-                            to={`/dashboard/contacts/${entry.contact_id}`}
+                            to={`/ledger/contacts/${entry.contact_id}`}
                             className="font-semibold hover:text-primary active:text-primary transition-colors truncate"
                           >
                             {entry.contact_name}

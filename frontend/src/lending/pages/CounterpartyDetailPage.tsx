@@ -111,7 +111,7 @@ export default function CounterpartyDetailPage() {
     if (!window.confirm(`Are you sure you want to delete ${counterparty.name}? This will delete the counterparty and ALL their loans permanently.`)) return;
     try {
       await deleteMutation.mutateAsync(counterparty.id);
-      navigate("/dashboard/lending/counterparties");
+      navigate("/lending/counterparties");
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to delete counterparty.");
     }
@@ -121,7 +121,7 @@ export default function CounterpartyDetailPage() {
     <SidebarLayout items={lendingSidebarItems}>
       <div className="space-y-6 sm:space-y-8">
         <div>
-          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate('/dashboard/lending/counterparties')} className="inline-flex items-center gap-1.5 text-sm cursor-pointer text-muted hover:text-primary active:text-primary transition-all mb-4 px-1 py-1 -ml-1">
+          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate('/lending/counterparties')} className="inline-flex items-center gap-1.5 text-sm cursor-pointer text-muted hover:text-primary active:text-primary transition-all mb-4 px-1 py-1 -ml-1">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
@@ -156,7 +156,7 @@ export default function CounterpartyDetailPage() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </button>
               <Link
-                to={`/dashboard/lending/loans/new?counterparty=${counterparty.id}`}
+                to={`/lending/loans/new?counterparty=${counterparty.id}`}
                 className="flex items-center gap-2 px-4 sm:px-5 py-2.5 text-white text-sm font-semibold rounded-xl cursor-pointer hover:opacity-90 active:opacity-90 transition-all font-inter shadow-sm"
                 style={{ background: "var(--gradient-primary)" }}
               >
@@ -350,7 +350,7 @@ export default function CounterpartyDetailPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <Link to={`/dashboard/lending/loans/${loan.id}`} className="text-primary hover:text-primary-hover font-semibold transition-colors">
+                          <Link to={`/lending/loans/${loan.id}`} className="text-primary hover:text-primary-hover font-semibold transition-colors">
                             View →
                           </Link>
                         </td>
@@ -374,7 +374,7 @@ function LoanCard({ loan }: { loan: any }) {
 
   return (
     <Link
-      to={`/dashboard/lending/loans/${loan.id}`}
+      to={`/lending/loans/${loan.id}`}
       className="bg-surface border border-border rounded-2xl p-5 hover:border-primary active:scale-[0.98] transition-all group block shadow-sm"
       style={{ boxShadow: "var(--shadow-card)" }}
     >

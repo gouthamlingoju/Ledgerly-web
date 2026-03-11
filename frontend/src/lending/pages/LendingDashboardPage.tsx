@@ -16,7 +16,7 @@ export default function LendingDashboardPage() {
           <p className="text-muted text-sm mt-1.5">Overview of active capital and interest</p>
         </div>
         <Link
-          to="/dashboard/lending/loans/new"
+          to="/lending/loans/new"
           className="flex items-center gap-2 px-4 sm:px-5 py-2.5 text-white text-sm font-semibold rounded-xl cursor-pointer hover:opacity-90 transition-all"
           style={{ background: "var(--gradient-primary)" }}
         >

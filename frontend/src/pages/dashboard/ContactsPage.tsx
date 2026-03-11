@@ -297,7 +297,7 @@ export default function ContactsPage() {
             return (
               <Link
                 key={contact.id}
-                to={`/dashboard/contacts/${contact.id}`}
+                to={`/ledger/contacts/${contact.id}`}
                 className="group bg-surface rounded-2xl border border-border p-5 sm:p-6 hover:border-primary/50 transition-all hover:-translate-y-1 relative overflow-hidden flex flex-col justify-between"
                 style={{ boxShadow: "var(--shadow-card)" }}
               >
@@ -369,7 +369,7 @@ export default function ContactsPage() {
                   const bal = Number(contact.balance);
                   const gradient = avatarGradients[idx % avatarGradients.length];
                   return (
-                    <tr key={contact.id} onClick={() => window.location.href = `/dashboard/contacts/${contact.id}`} className="hover:bg-background/40 cursor-pointer transition-colors group">
+                    <tr key={contact.id} onClick={() => window.location.href = `/ledger/contacts/${contact.id}`} className="hover:bg-background/40 cursor-pointer transition-colors group">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0" style={{ background: gradient }}>

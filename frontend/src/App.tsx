@@ -22,19 +22,20 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
-      <Route path="/dashboard" element={<DashboardLayout />}>
-        <Route index element={<DashboardPage />} />
-        <Route path="contacts" element={<ContactsPage />} />
-        <Route path="contacts/:id" element={<ContactDetailPage />} />
-        <Route path="ledger" element={<LedgerPage />} />
-        
+      <Route element={<DashboardLayout />}>
+        {/* Ledger Module Routes */}
+        <Route path="/ledger" element={<DashboardPage />} />
+        <Route path="/ledger/contacts" element={<ContactsPage />} />
+        <Route path="/ledger/contacts/:id" element={<ContactDetailPage />} />
+        <Route path="/ledger/transactions" element={<LedgerPage />} />
+
         {/* Lending Module Routes */}
-        <Route path="lending" element={<LendingDashboardPage />} />
-        <Route path="lending/counterparties" element={<CounterpartiesPage />} />
-        <Route path="lending/counterparties/:id" element={<CounterpartyDetailPage />} />
-        <Route path="lending/loans" element={<LoansPage />} />
-        <Route path="lending/loans/new" element={<NewLoanPage />} />
-        <Route path="lending/loans/:id" element={<LoanDetailPage />} />
+        <Route path="/lending" element={<LendingDashboardPage />} />
+        <Route path="/lending/counterparties" element={<CounterpartiesPage />} />
+        <Route path="/lending/counterparties/:id" element={<CounterpartyDetailPage />} />
+        <Route path="/lending/loans" element={<LoansPage />} />
+        <Route path="/lending/loans/new" element={<NewLoanPage />} />
+        <Route path="/lending/loans/:id" element={<LoanDetailPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

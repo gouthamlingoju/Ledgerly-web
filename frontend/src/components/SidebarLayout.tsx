@@ -61,7 +61,7 @@ export function SidebarLayout({ items, children }: { items: SidebarItem[], child
 
     const isActive = (href: string) => {
         // For exact paths or parent paths
-        if (href === '/dashboard/lending' || href === '/dashboard/contacts' || href === '/dashboard/ledger') {
+        if (href === '/lending' || href === '/ledger/contacts' || href === '/ledger/transactions') {
             return location.pathname === href;
         }
         return location.pathname.startsWith(href);

@@ -19,7 +19,7 @@ export default function LoginPage() {
     try {
       const res = await authApi.login(identifier, password);
       await login(res.data.access_token);
-      navigate("/dashboard");
+      navigate("/ledger");
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string } } };
       setError(axiosErr.response?.data?.detail || "Login failed");

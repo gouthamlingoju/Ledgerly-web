@@ -35,7 +35,7 @@ export default function RegisterPage() {
     try {
       const res = await authApi.register(email, username.trim(), password);
       await login(res.data.access_token);
-      navigate("/dashboard");
+      navigate("/ledger");
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string } } };
       setError(axiosErr.response?.data?.detail || "Registration failed");

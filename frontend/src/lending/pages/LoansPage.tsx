@@ -107,7 +107,7 @@ export default function LoansPage() {
           <p className="text-muted text-sm mt-1.5">Manage incoming and outgoing term loans</p>
         </div>
         <Link
-          to="/dashboard/lending/loans/new"
+          to="/lending/loans/new"
           className="flex items-center gap-2 px-4 sm:px-5 py-2.5 text-white text-sm font-semibold rounded-xl cursor-pointer hover:opacity-90 transition-all"
           style={{ background: "var(--gradient-primary)" }}
         >
@@ -262,7 +262,7 @@ export default function LoansPage() {
               return (
                 <Link
                   key={loan.id}
-                  to={`/dashboard/lending/loans/${loan.id}`}
+                  to={`/lending/loans/${loan.id}`}
                   className="block bg-surface rounded-2xl border border-border p-5 sm:p-6 hover:border-primary/50 transition-all hover:-translate-y-1 relative"
                   style={{ boxShadow: "var(--shadow-card)" }}
                 >
@@ -271,7 +271,7 @@ export default function LoansPage() {
                       <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${isLent ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
                         {isLent ? 'Lent To' : 'Borrowed From'}
                       </span>
-                      <Link to={`/dashboard/lending/counterparties/${loan.counterparty_id}`} className="hover:text-primary transition-colors">
+                      <Link to={`/lending/counterparties/${loan.counterparty_id}`} className="hover:text-primary transition-colors">
                         <h3 className="font-bold text-lg mt-2">{cpMap[loan.counterparty_id] || "Unknown"}</h3>
                       </Link>
                     </div>
@@ -319,10 +319,10 @@ export default function LoansPage() {
                   {filteredAndSortedLoans.map((loan) => {
                     const isLent = loan.type === 'lent';
                     return (
-                      <tr key={loan.id} onClick={() => window.location.href = `/dashboard/lending/loans/${loan.id}`} className="hover:bg-background/40 cursor-pointer transition-colors group">
+                      <tr key={loan.id} onClick={() => window.location.href = `/lending/loans/${loan.id}`} className="hover:bg-background/40 cursor-pointer transition-colors group">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Link
-                            to={`/dashboard/lending/counterparties/${loan.counterparty_id}`}
+                            to={`/lending/counterparties/${loan.counterparty_id}`}
                             onClick={(e) => e.stopPropagation()}
                             className="font-bold hover:text-primary transition-colors"
                           >
