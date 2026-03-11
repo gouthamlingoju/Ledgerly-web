@@ -51,8 +51,8 @@ export default function DashboardLayout() {
       exact: true,
     },
     {
-      href: "/dashboard/contacts",
-      label: "Contacts",
+      href: "/dashboard/lending",
+      label: "Lending",
       icon: (
         <svg
           className="w-5 h-5"
@@ -64,7 +64,7 @@ export default function DashboardLayout() {
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
       ),
@@ -85,26 +85,6 @@ export default function DashboardLayout() {
             strokeLinecap="round"
             strokeLinejoin="round"
             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-          />
-        </svg>
-      ),
-      exact: false,
-    },
-    {
-      href: "/dashboard/lending",
-      label: "Lending",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.8}
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
       ),
@@ -135,26 +115,43 @@ export default function DashboardLayout() {
                   Ledgerly
                 </span>
               </Link>
-              <nav className="hidden sm:flex items-center gap-1">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                      isActive(item)
-                        ? "text-white shadow-md"
-                        : "text-muted hover:text-foreground hover:bg-surface-hover"
+              <nav className="hidden sm:flex items-center gap-2 p-1 bg-surface-hover/50 rounded-2xl border border-border/50">
+                <Link
+                  to="/dashboard"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${pathname === "/dashboard"
+                      ? "bg-surface shadow-sm text-foreground"
+                      : "text-muted hover:text-foreground"
                     }`}
-                    style={
-                      isActive(item)
-                        ? { background: "var(--gradient-primary)" }
-                        : undefined
-                    }
-                  >
-                    {item.icon}
-                    {item.label}
-                  </Link>
-                ))}
+                >
+                  Home
+                </Link>
+                <div className="w-px h-5 bg-border/80 mx-1" />
+                <Link
+                  to="/dashboard/lending"
+                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all ${pathname.startsWith("/dashboard/lending")
+                      ? "text-white shadow-md ring-1 ring-black/5"
+                      : "text-muted hover:text-foreground hover:bg-surface/80"
+                    }`}
+                  style={pathname.startsWith("/dashboard/lending") ? { background: "var(--gradient-primary)" } : {}}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Lending
+                </Link>
+                <Link
+                  to="/dashboard/contacts"
+                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all ${pathname.startsWith("/dashboard/contacts") || pathname.startsWith("/dashboard/ledger")
+                      ? "text-white shadow-md ring-1 ring-black/5"
+                      : "text-muted hover:text-foreground hover:bg-surface/80"
+                    }`}
+                  style={pathname.startsWith("/dashboard/contacts") || pathname.startsWith("/dashboard/ledger") ? { background: "var(--gradient-accent)" } : {}}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                  Ledger
+                </Link>
               </nav>
             </div>
             <div className="flex items-center gap-3">
@@ -202,11 +199,10 @@ export default function DashboardLayout() {
             <Link
               key={item.href}
               to={item.href}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[11px] font-semibold transition-all ${
-                isActive(item)
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[11px] font-semibold transition-all ${isActive(item)
                   ? "text-primary"
                   : "text-muted active:text-foreground"
-              }`}
+                }`}
             >
               <div
                 className={`p-1.5 rounded-xl transition-all ${isActive(item) ? "bg-primary/15 text-primary scale-110" : ""}`}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useLending } from "../hooks/useLending";
 import { CreateCounterpartyModal } from "@/src/components/CreateCounterpartyModal";
 
@@ -8,12 +8,15 @@ export default function NewLoanPage() {
   const { useCounterparties, useCreateLoan } = useLending();
   const { data: counterparties, isLoading: isLoadingCP } = useCounterparties();
   const createMutation = useCreateLoan();
-  
+
   const [error, setError] = useState<string | null>(null);
   const [isCPModalOpen, setIsCPModalOpen] = useState(false);
-  
+
+  const [searchParams] = useSearchParams();
+  const initialCounterpartyId = searchParams.get("counterparty") || "";
+
   // Form fields
-  const [counterpartyId, setCounterpartyId] = useState("");
+  const [counterpartyId, setCounterpartyId] = useState(initialCounterpartyId);
   const [principal, setPrincipal] = useState("");
   const [type, setType] = useState<'lent' | 'borrowed'>("lent");
   const [interestRate, setInterestRate] = useState("0");
@@ -26,7 +29,7 @@ export default function NewLoanPage() {
       setError("Counterparty, principal, and start date are required.");
       return;
     }
-    
+
     setError(null);
     createMutation.mutate({
       counterparty_id: counterpartyId,
@@ -64,20 +67,20 @@ export default function NewLoanPage() {
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase tracking-wider text-muted" htmlFor="type">Loan Type *</label>
             <div className="flex gap-2">
-               <button
-                  type="button"
-                  onClick={() => setType('lent')}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${type === 'lent' ? 'bg-success text-white' : 'bg-background border border-border text-muted'}`}
-               >
-                  Lent To
-               </button>
-               <button
-                  type="button"
-                  onClick={() => setType('borrowed')}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${type === 'borrowed' ? 'bg-danger text-white' : 'bg-background border border-border text-muted'}`}
-               >
-                  Borrowed From
-               </button>
+              <button
+                type="button"
+                onClick={() => setType('lent')}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${type === 'lent' ? 'bg-success text-white' : 'bg-background border border-border text-muted'}`}
+              >
+                Lent To
+              </button>
+              <button
+                type="button"
+                onClick={() => setType('borrowed')}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${type === 'borrowed' ? 'bg-danger text-white' : 'bg-background border border-border text-muted'}`}
+              >
+                Borrowed From
+              </button>
             </div>
           </div>
 
@@ -179,9 +182,9 @@ export default function NewLoanPage() {
         </div>
       </form>
 
-      <CreateCounterpartyModal 
-        isOpen={isCPModalOpen} 
-        onClose={() => setIsCPModalOpen(false)} 
+      <CreateCounterpartyModal
+        isOpen={isCPModalOpen}
+        onClose={() => setIsCPModalOpen(false)}
         onSuccess={(id) => setCounterpartyId(id)}
       />
     </div>
