@@ -4,6 +4,8 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { contactsApi, ledgerApi } from "@/lib/api";
 import { CreateContactModal } from "@/src/components/CreateContactModal";
+import { SidebarLayout } from "@/src/components/SidebarLayout";
+import { ledgerSidebarItems } from "@/src/components/NavigationItems";
 
 export default function LedgerPage() {
   const queryClient = useQueryClient();
@@ -20,7 +22,7 @@ export default function LedgerPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDirection, setFilterDirection] = useState<'all' | 'credit' | 'debit'>('all');
-  const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
+  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'direction' | 'note' | 'contact'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const { data: contacts } = useQuery({
@@ -36,7 +38,7 @@ export default function LedgerPage() {
 
   const filteredAndSortedEntries = useMemo(() => {
     if (!entries) return [];
-    
+
     let result = [...entries];
 
     // Filter by contact (handled by API mostly, but good for local filtering if needed)
@@ -48,8 +50,8 @@ export default function LedgerPage() {
     // Filter by search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(e => 
-        (e.contact_name?.toLowerCase() || "").includes(q) || 
+      result = result.filter(e =>
+        (e.contact_name?.toLowerCase() || "").includes(q) ||
         (e.note && e.note.toLowerCase().includes(q)) ||
         e.amount.toString().includes(q)
       );
@@ -62,6 +64,12 @@ export default function LedgerPage() {
         comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       } else if (sortBy === 'amount') {
         comparison = Number(a.amount) - Number(b.amount);
+      } else if (sortBy === 'direction') {
+        comparison = a.direction.localeCompare(b.direction);
+      } else if (sortBy === 'note') {
+        comparison = (a.note || "").localeCompare(b.note || "");
+      } else if (sortBy === 'contact') {
+        comparison = (a.contact_name || "").localeCompare(b.contact_name || "");
       }
       return sortOrder === 'desc' ? -comparison : comparison;
     });
@@ -176,7 +184,7 @@ export default function LedgerPage() {
     new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <SidebarLayout items={ledgerSidebarItems}>
       <div className="flex justify-between items-start gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Ledger</h1>
@@ -364,19 +372,37 @@ export default function LedgerPage() {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h2 className="font-semibold text-lg">Transaction History</h2>
                 <div className="flex bg-background border border-border rounded-xl p-1 gap-1">
-                  <button 
+                  <button
                     onClick={() => setSortBy('date')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortBy === 'date' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-surface'}`}
                   >
                     Date
                   </button>
-                  <button 
+                  <button
                     onClick={() => setSortBy('amount')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortBy === 'amount' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-surface'}`}
                   >
                     Amount
                   </button>
-                  <button 
+                  <button
+                    onClick={() => setSortBy('direction')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortBy === 'direction' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-surface'}`}
+                  >
+                    Type
+                  </button>
+                  <button
+                    onClick={() => setSortBy('note')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortBy === 'note' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-surface'}`}
+                  >
+                    Note
+                  </button>
+                  <button
+                    onClick={() => setSortBy('contact')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortBy === 'contact' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-surface'}`}
+                  >
+                    Contact
+                  </button>
+                  <button
                     onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                     className="p-1.5 rounded-lg text-muted hover:bg-surface hover:text-primary transition-all border-l border-border ml-1"
                     title={sortOrder === 'asc' ? "Sort Descending" : "Sort Ascending"}
@@ -395,16 +421,16 @@ export default function LedgerPage() {
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                   </span>
-                  <input 
-                    type="text" 
-                    placeholder="Search transactions..." 
+                  <input
+                    type="text"
+                    placeholder="Search transactions..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl text-xs focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                   />
                 </div>
                 <div className="flex gap-2">
-                  <select 
+                  <select
                     className="bg-background border border-border rounded-xl px-3 py-2 text-[10px] font-bold uppercase tracking-wider outline-none focus:ring-2 focus:ring-primary/20"
                     value={filterDirection}
                     onChange={(e) => setFilterDirection(e.target.value as any)}
@@ -414,7 +440,7 @@ export default function LedgerPage() {
                     <option value="debit">Received (Debit)</option>
                   </select>
                   {(searchQuery || filterDirection !== 'all') && (
-                    <button 
+                    <button
                       onClick={() => { setSearchQuery(""); setFilterDirection("all"); }}
                       className="px-3 py-2 text-[10px] font-bold text-danger hover:bg-danger/5 rounded-xl transition-all uppercase tracking-widest border border-danger/20"
                     >
@@ -505,11 +531,11 @@ export default function LedgerPage() {
         </div>
       </div>
 
-      <CreateContactModal 
-        isOpen={isContactModalOpen} 
-        onClose={() => setIsContactModalOpen(false)} 
+      <CreateContactModal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
         onSuccess={(id) => setContactId(id)}
       />
-    </div>
+    </SidebarLayout>
   );
 }

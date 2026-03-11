@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { contactsApi, type Contact } from "@/lib/api";
+import { SidebarLayout } from "@/src/components/SidebarLayout";
+import { ledgerSidebarItems } from "@/src/components/NavigationItems";
 
 export default function ContactsPage() {
   const queryClient = useQueryClient();
@@ -24,7 +26,7 @@ export default function ContactsPage() {
 
   const filteredAndSortedContacts = useMemo(() => {
     if (!contacts) return [];
-    
+
     let result = [...contacts];
 
     // Filter by balance
@@ -127,7 +129,7 @@ export default function ContactsPage() {
   ];
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <SidebarLayout items={ledgerSidebarItems}>
       <div className="flex justify-between items-start gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Contacts</h1>
@@ -149,85 +151,85 @@ export default function ContactsPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface border border-border p-4 rounded-2xl"  style={{ boxShadow: "var(--shadow-card)" }}>
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-surface border border-border p-4 rounded-2xl" style={{ boxShadow: "var(--shadow-card)" }}>
         <div className="flex flex-1 w-full sm:w-auto gap-2">
-           <div className="relative flex-1 group">
-             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none transition-colors group-focus-within:text-primary">
-               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-             </span>
-             <input 
-               type="text" 
-               placeholder="Search contacts..." 
-               value={searchQuery}
-               onChange={(e) => setSearchQuery(e.target.value)}
-               className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl text-xs focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-             />
-           </div>
-           
-           <select 
-             className="bg-background border border-border rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
-             value={filterBalance}
-             onChange={(e) => setFilterBalance(e.target.value as any)}
-           >
-             <option value="all">Any Balance</option>
-             <option value="owed">Owes You</option>
-             <option value="owing">You Owe</option>
-             <option value="settled">Settled</option>
-           </select>
+          <div className="relative flex-1 group">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none transition-colors group-focus-within:text-primary">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Search contacts..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl text-xs focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            />
+          </div>
+
+          <select
+            className="bg-background border border-border rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+            value={filterBalance}
+            onChange={(e) => setFilterBalance(e.target.value as any)}
+          >
+            <option value="all">Any Balance</option>
+            <option value="owed">Owes You</option>
+            <option value="owing">You Owe</option>
+            <option value="settled">Settled</option>
+          </select>
         </div>
 
         <div className="flex w-full sm:w-auto gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
-           <div className="flex bg-background border border-border rounded-xl p-1 gap-1">
-             <select 
-               className="bg-transparent text-xs outline-none cursor-pointer pr-1"
-               value={sortBy}
-               onChange={(e) => setSortBy(e.target.value as any)}
-             >
-               <option value="name">Name</option>
-               <option value="balance">Balance</option>
-               <option value="recent">Recently Added</option>
-             </select>
-             <button 
-               onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-               className="p-1.5 rounded-lg text-muted hover:bg-surface hover:text-primary transition-all"
-               title={sortOrder === 'asc' ? "Sort Descending" : "Sort Ascending"}
-             >
-               {sortOrder === 'asc' ? (
-                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" /></svg>
-               ) : (
-                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" /></svg>
-               )}
-             </button>
-           </div>
+          <div className="flex bg-background border border-border rounded-xl p-1 gap-1">
+            <select
+              className="bg-transparent text-xs outline-none cursor-pointer pr-1"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+            >
+              <option value="name">Name</option>
+              <option value="balance">Balance</option>
+              <option value="recent">Recently Added</option>
+            </select>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="p-1.5 rounded-lg text-muted hover:bg-surface hover:text-primary transition-all"
+              title={sortOrder === 'asc' ? "Sort Descending" : "Sort Ascending"}
+            >
+              {sortOrder === 'asc' ? (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" /></svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" /></svg>
+              )}
+            </button>
+          </div>
 
-           <div className="flex bg-background border border-border rounded-xl p-1 gap-1">
-             <button 
-               onClick={() => setViewMode('grid')}
-               className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-surface'}`}
-               title="Grid View"
-             >
-               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-             </button>
-             <button 
-               onClick={() => setViewMode('list')}
-               className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-surface'}`}
-               title="List View"
-             >
-               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-             </button>
-           </div>
+          <div className="flex bg-background border border-border rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-surface'}`}
+              title="Grid View"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-surface'}`}
+              title="List View"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+          </div>
 
-           {(searchQuery || filterBalance !== 'all') && (
-             <button 
-               onClick={() => {
-                 setSearchQuery("");
-                 setFilterBalance("all");
-               }}
-               className="px-3 py-2 text-[10px] font-bold text-danger hover:bg-danger/5 rounded-xl transition-all uppercase tracking-widest"
-             >
-               Clear
-             </button>
-           )}
+          {(searchQuery || filterBalance !== 'all') && (
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                setFilterBalance("all");
+              }}
+              className="px-3 py-2 text-[10px] font-bold text-danger hover:bg-danger/5 rounded-xl transition-all uppercase tracking-widest"
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
@@ -370,10 +372,10 @@ export default function ContactsPage() {
                     <tr key={contact.id} onClick={() => window.location.href = `/dashboard/contacts/${contact.id}`} className="hover:bg-background/40 cursor-pointer transition-colors group">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                           <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0" style={{ background: gradient }}>
-                             {contact.name.slice(0, 2).toUpperCase()}
-                           </div>
-                           <span className="font-bold group-hover:text-primary transition-colors">{contact.name}</span>
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0" style={{ background: gradient }}>
+                            {contact.name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <span className="font-bold group-hover:text-primary transition-colors">{contact.name}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-muted text-xs">
@@ -384,12 +386,12 @@ export default function ContactsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex justify-end items-center gap-1">
-                           <button onClick={(e) => { e.stopPropagation(); startEdit(contact); }} className="p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-all">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                           </button>
-                           <button onClick={(e) => { e.stopPropagation(); if (confirm(`Delete \"${contact.name}\"?`)) deleteMutation.mutate(contact.id); }} className="p-1.5 rounded-lg hover:bg-danger/10 text-danger transition-all">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v2m3 3H9" /></svg>
-                           </button>
+                          <button onClick={(e) => { e.stopPropagation(); startEdit(contact); }} className="p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-all">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); if (confirm(`Delete \"${contact.name}\"?`)) deleteMutation.mutate(contact.id); }} className="p-1.5 rounded-lg hover:bg-danger/10 text-danger transition-all">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v2m3 3H9" /></svg>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -400,6 +402,6 @@ export default function ContactsPage() {
           </div>
         </div>
       )}
-    </div>
+    </SidebarLayout>
   );
 }
