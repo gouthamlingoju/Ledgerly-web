@@ -49,6 +49,8 @@ export const authApi = {
     login: (identifier: string, password: string) =>
         api.post<{ access_token: string }>("/auth/login", { identifier, password }),
     me: () => api.get<User>("/auth/me"),
+    changePassword: (current_password: string, new_password: string) =>
+        api.post<{ message: string }>("/auth/change-password", { current_password, new_password }),
 };
 
 // --- Contacts ---

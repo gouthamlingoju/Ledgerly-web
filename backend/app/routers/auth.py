@@ -2,7 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
 from app.dependencies import get_supabase
-from app.schemas.auth import UserCreate, UserLogin, Token, UserResponse
+from app.schemas.auth import (
+    UserCreate,
+    UserLogin,
+    Token,
+    UserResponse,
+    ChangePasswordRequest,
+    MessageResponse,
+)
 from app.services.auth import (
     hash_password,
     verify_password,
@@ -68,3 +75,55 @@ async def login(data: UserLogin, supabase: Client = Depends(get_supabase)):
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: UserResponse = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/change-password", response_model=MessageResponse)
+async def change_password(
+    data: ChangePasswordRequest,
+    current_user: UserResponse = Depends(get_current_user),
+    supabase: Client = Depends(get_supabase),
+):
+    if len(data.new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be at least 6 characters",
+        )
+
+    if data.current_password == data.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from current password",
+        )
+
+    try:
+        user_resp = (
+            supabase.table("users")
+            .select("id,password_hash")
+            .eq("id", str(current_user.id))
+            .single()
+            .execute()
+        )
+        user = user_resp.data
+    except Exception:
+        user = None
+
+    if not user or not verify_password(data.current_password, user["password_hash"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+
+    try:
+        (
+            supabase.table("users")
+            .update({"password_hash": hash_password(data.new_password)})
+            .eq("id", str(current_user.id))
+            .execute()
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update password: {str(e)}",
+        )
+
+    return MessageResponse(message="Password changed successfully")

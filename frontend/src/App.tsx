@@ -14,6 +14,7 @@ import LoansPage from "./lending/pages/LoansPage";
 import NewLoanPage from "./lending/pages/NewLoanPage";
 import LoanDetailPage from "./lending/pages/LoanDetailPage";
 import CounterpartyDetailPage from "./lending/pages/CounterpartyDetailPage";
+import ProfilePage from "./pages/ProfilePage";
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/lending/loans" element={<LoansPage />} />
         <Route path="/lending/loans/new" element={<NewLoanPage />} />
         <Route path="/lending/loans/:id" element={<LoanDetailPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

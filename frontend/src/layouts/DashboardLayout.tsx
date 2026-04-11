@@ -127,6 +127,15 @@ export default function DashboardLayout() {
             <div className="flex items-center gap-3">
               <ThemeToggle />
               <div className="w-px h-6 bg-border hidden sm:block" />
+              <Link
+                to="/profile"
+                className={`hidden sm:inline text-sm font-medium px-3 py-2 rounded-xl transition-all ${pathname === "/profile"
+                  ? "text-primary bg-primary/10"
+                  : "text-muted hover:text-foreground hover:bg-surface-hover"
+                  }`}
+              >
+                Profile
+              </Link>
               <div className="flex items-center gap-2.5">
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white"
@@ -165,6 +174,18 @@ export default function DashboardLayout() {
         }}
       >
         <div className="flex items-stretch">
+          <Link
+            to="/profile"
+            className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[11px] font-semibold transition-all ${pathname === "/profile" ? "text-primary" : "text-muted active:text-foreground"
+              }`}
+          >
+            <div className={`p-1.5 rounded-xl transition-all ${pathname === "/profile" ? "bg-primary/15 text-primary scale-110" : ""}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.9} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A9 9 0 1118.88 17.8M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            Profile
+          </Link>
           {navItems.map((item) => (
             <Link
               key={item.href}
