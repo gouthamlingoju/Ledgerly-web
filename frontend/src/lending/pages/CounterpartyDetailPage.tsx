@@ -12,7 +12,7 @@ export default function CounterpartyDetailPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'lent' | 'borrowed'>('all');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'overdue' | 'closed'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'overdue' | 'closed'>('active');
   const [sortBy, setSortBy] = useState<'date' | 'due_date' | 'principal' | 'interest_rate' | 'type' | 'status'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isEditing, setIsEditing] = useState(false);
@@ -30,13 +30,26 @@ export default function CounterpartyDetailPage() {
   const rawLoans = detail?.loans || [];
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const isOverdue = (loan: typeof rawLoans[number]) =>
+    new Date(loan.due_date) < new Date() &&
+    Number(loan.current_principal) > 0 &&
+    loan.status !== 'closed' &&
+    loan.status !== 'settled';
 
   const loans = useMemo(() => {
     let result = [...rawLoans];
     const query = searchQuery.trim().toLowerCase();
 
     if (filterType !== 'all') result = result.filter((loan) => loan.type === filterType);
-    if (filterStatus !== 'all') result = result.filter((loan) => loan.status === filterStatus);
+    if (filterStatus !== 'all') {
+      result = result.filter((loan) => {
+        if (filterStatus === 'overdue') return isOverdue(loan);
+        if (filterStatus === 'active') {
+          return loan.status !== 'closed' && loan.status !== 'settled' && Number(loan.current_principal) > 0;
+        }
+        return loan.status === filterStatus;
+      });
+    }
     if (query) {
       result = result.filter((loan) => [
         loan.type,
@@ -343,6 +356,7 @@ export default function CounterpartyDetailPage() {
                 <option value="closed">Closed</option>
               </select>
               <div className="flex bg-background border border-border rounded-xl p-1 gap-1 flex-1 sm:flex-initial">
+                <span className="hidden sm:flex items-center pl-2 text-[10px] font-bold uppercase tracking-widest text-muted">Sort by</span>
                 <select
                   className="bg-transparent text-xs outline-none cursor-pointer pr-1 flex-1"
                   value={sortBy}
@@ -432,7 +446,9 @@ export default function CounterpartyDetailPage() {
                           ₹{Number(loan.current_principal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                         </td>
                         <td className="px-6 py-4 text-muted">{loan.interest_rate}%/m</td>
-                        <td className="px-6 py-4 text-muted">{formatDate(loan.due_date)}</td>
+                        <td className={`px-6 py-4 ${new Date(loan.due_date) < new Date() ? 'text-danger font-bold' : 'text-muted'}`}>
+                          {formatDate(loan.due_date)}
+                        </td>
                         <td className="px-6 py-4">
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${loan.status === 'active' ? 'bg-success-light text-success' :
                             loan.status === 'overdue' ? 'bg-danger-light text-danger' :
@@ -494,7 +510,9 @@ function LoanCard({ loan }: { loan: any }) {
         </p>
       </div>
       <div className="mt-4 pt-4 border-t border-border/50 flex justify-between items-center text-xs">
-        <span className="text-muted">Due {formatDate(loan.due_date)}</span>
+        <span className={new Date(loan.due_date) < new Date() ? "text-danger font-bold" : "text-muted"}>
+          Due {formatDate(loan.due_date)}
+        </span>
         <span className="font-semibold text-primary group-hover:translate-x-1 transition-transform">View Details →</span>
       </div>
     </Link>

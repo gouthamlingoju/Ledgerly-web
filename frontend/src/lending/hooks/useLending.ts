@@ -37,6 +37,12 @@ export const useLending = () => {
     },
   });
 
+  const useUpdateCounterpartyPortalAccess = () => useMutation({
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
+      lendingApi.updateCounterpartyPortalAccess(id, enabled),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lending-counterparties"] }),
+  });
+
   // Loans
   const useLoans = () => useQuery({
     queryKey: ["lending-loans"],
@@ -125,6 +131,7 @@ export const useLending = () => {
     useCreateCounterparty,
     useUpdateCounterparty,
     useDeleteCounterparty,
+    useUpdateCounterpartyPortalAccess,
     useLoans,
     useLoan,
     useCreateLoan,

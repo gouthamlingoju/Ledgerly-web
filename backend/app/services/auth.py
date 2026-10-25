@@ -8,6 +8,7 @@ from supabase import Client
 
 from app.config import get_settings
 from app.dependencies import get_supabase
+from app.lending.database import get_db
 from app.schemas.auth import UserResponse
 
 settings = get_settings()
@@ -46,6 +47,8 @@ async def get_current_user(
         payload = jwt.decode(
             token, settings.secret_key, algorithms=[settings.algorithm]
         )
+        if payload.get("actor", "owner") != "owner":
+            raise credentials_exception
         user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exception
@@ -63,5 +66,36 @@ async def get_current_user(
         
     return UserResponse(**user_data)
 
+async def get_current_counterparty(
+    token: str = Depends(oauth2_scheme),
+    conn = Depends(get_db),
+) -> dict:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate counterparty credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        if payload.get("actor") != "counterparty" or not payload.get("sub"):
+            raise credentials_exception
+        counterparty_id = payload["sub"]
+    except (JWTError, TypeError):
+        raise credentials_exception
 
+    row = await conn.fetchrow("""
+        SELECT cp.id, cp.name, cp.user_id, a.must_change_password
+        FROM lending_counterparties cp
+        JOIN lending_counterparty_access a ON a.counterparty_id = cp.id
+        WHERE cp.id = $1 AND a.enabled = TRUE
+    """, counterparty_id)
+    if not row:
+        raise credentials_exception
+    return dict(row)
 
+def require_counterparty_password_changed(counterparty: dict) -> None:
+    if counterparty["must_change_password"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password change required before viewing loans",
+        )

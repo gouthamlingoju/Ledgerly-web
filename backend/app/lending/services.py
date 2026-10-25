@@ -15,6 +15,7 @@ from app.lending.schemas import (
     LoanUpdate, TransactionUpdate
 )
 from app.lending.calculations import compute_interest_snapshot
+from app.services.auth import hash_password
 
 async def create_counterparty(conn: asyncpg.Connection, user_id: UUID, data: CounterpartyCreate) -> CounterpartyResponse:
     row = await conn.fetchrow("""
@@ -26,9 +27,44 @@ async def create_counterparty(conn: asyncpg.Connection, user_id: UUID, data: Cou
 
 async def list_counterparties(conn: asyncpg.Connection, user_id: UUID) -> List[CounterpartyResponse]:
     rows = await conn.fetch("""
-        SELECT * FROM lending_counterparties WHERE user_id = $1 ORDER BY name ASC
+        SELECT cp.*, COALESCE(a.enabled, FALSE) AS portal_enabled
+        FROM lending_counterparties cp
+        LEFT JOIN lending_counterparty_access a ON a.counterparty_id = cp.id
+        WHERE cp.user_id = $1 ORDER BY cp.name ASC
     """, str(user_id))
     return [CounterpartyResponse(**dict(row)) for row in rows]
+
+async def update_counterparty_access(
+    conn: asyncpg.Connection, user_id: UUID, cp_id: UUID, enabled: bool
+) -> dict:
+    counterparty = await conn.fetchrow(
+        "SELECT id, name FROM lending_counterparties WHERE id = $1 AND user_id = $2",
+        str(cp_id), str(user_id),
+    )
+    if not counterparty:
+        raise HTTPException(status_code=404, detail="Counterparty not found")
+
+    access = await conn.fetchrow(
+        "SELECT id FROM lending_counterparty_access WHERE counterparty_id = $1",
+        str(cp_id),
+    )
+    if access:
+        await conn.execute(
+            "UPDATE lending_counterparty_access SET enabled = $1, updated_at = NOW() WHERE counterparty_id = $2",
+            enabled, str(cp_id),
+        )
+    elif enabled:
+        await conn.execute("""
+            INSERT INTO lending_counterparty_access
+                (counterparty_id, password_hash, enabled, must_change_password)
+            VALUES ($1, $2, TRUE, TRUE)
+        """, str(cp_id), hash_password(counterparty["name"]))
+
+    return {
+        "enabled": enabled,
+        "must_change_password": bool(not access and enabled),
+        "message": "Read-only login enabled" if enabled else "Read-only login disabled",
+    }
 
 async def update_counterparty(conn: asyncpg.Connection, user_id: UUID, cp_id: UUID, data: any) -> CounterpartyResponse:
     # Build dynamic update
@@ -383,6 +419,48 @@ async def get_counterparty_detail(conn: asyncpg.Connection, user_id: UUID, cp_id
         counterparty=counterparty,
         loans=loans
     )
+
+async def get_portal_loans(conn: asyncpg.Connection, counterparty_id: UUID) -> List[LoanWithCounterparty]:
+    rows = await conn.fetch("""
+        SELECT l.*, cp.name AS counterparty_name
+        FROM lending_loans l
+        JOIN lending_counterparties cp ON cp.id = l.counterparty_id
+        JOIN lending_counterparty_access a ON a.counterparty_id = cp.id
+        WHERE cp.id = $1 AND a.enabled = TRUE
+        ORDER BY l.created_at DESC
+    """, str(counterparty_id))
+    return [LoanWithCounterparty(**dict(row)) for row in rows]
+
+async def get_portal_loan_detail(
+    conn: asyncpg.Connection, counterparty_id: UUID, loan_id: UUID
+) -> LoanDetailResponse:
+    loan_row = await conn.fetchrow("""
+        SELECT l.*, cp.name AS counterparty_name
+        FROM lending_loans l
+        JOIN lending_counterparties cp ON cp.id = l.counterparty_id
+        JOIN lending_counterparty_access a ON a.counterparty_id = cp.id
+        WHERE l.id = $1 AND cp.id = $2 AND a.enabled = TRUE
+    """, str(loan_id), str(counterparty_id))
+    if not loan_row:
+        raise HTTPException(status_code=404, detail="Loan not found")
+
+    loan = LoanWithCounterparty(**dict(loan_row))
+    tx_rows = await conn.fetch("""
+        SELECT * FROM lending_transactions
+        WHERE loan_id = $1
+        ORDER BY transaction_date DESC, created_at DESC
+    """, str(loan_id))
+    transactions = [LoanTransactionResponse(**dict(row)) for row in tx_rows]
+    counterparty = CounterpartyResponse(
+        id=counterparty_id,
+        user_id=loan.user_id,
+        name=loan.counterparty_name,
+        phone=None,
+        notes=None,
+        status="active",
+        created_at=loan.created_at,
+    )
+    return LoanDetailResponse(loan=loan, transactions=transactions, counterparty=counterparty)
 
 async def delete_loan(conn: asyncpg.Connection, user_id: UUID, loan_id: UUID):
     # Verify ownership

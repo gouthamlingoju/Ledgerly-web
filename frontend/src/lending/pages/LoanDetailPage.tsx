@@ -251,7 +251,7 @@ export default function LoanDetailPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Due Date</p>
-                  <p className={`font-semibold text-sm ${new Date(loan.due_date) < new Date() && loan.current_principal !== '0.00' ? 'text-danger' : ''}`}>
+                  <p className={`font-semibold text-sm ${new Date(loan.due_date) < new Date() ? 'text-danger font-bold' : ''}`}>
                     {new Date(loan.due_date).toLocaleDateString()}
                   </p>
                 </div>
@@ -298,7 +298,9 @@ export default function LoanDetailPage() {
                           return totalExpected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                         })()}
                       </p>
-                      <p className="text-[9px] text-muted italic">on {new Date(loan.due_date).toLocaleDateString()}</p>
+                      <p className={`text-[9px] italic ${new Date(loan.due_date) < new Date() ? 'text-danger font-bold' : 'text-muted'}`}>
+                        on {new Date(loan.due_date).toLocaleDateString()}
+                      </p>
                     </div>
                   </>
                 )}

@@ -12,7 +12,7 @@ export default function LoansPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'lent' | 'borrowed'>('all');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'overdue' | 'closed'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'overdue' | 'closed'>('active');
   const [sortBy, setSortBy] = useState<'date' | 'due_date' | 'principal' | 'interest_rate' | 'counterparty' | 'type' | 'status'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -22,6 +22,12 @@ export default function LoansPage() {
     acc[cp.id] = cp.name;
     return acc;
   }, {} as Record<string, string>) || {};
+
+  const isOverdue = (loan: NonNullable<typeof loans>[number]) =>
+    new Date(loan.due_date) < new Date() &&
+    Number(loan.current_principal) > 0 &&
+    loan.status !== 'closed' &&
+    loan.status !== 'settled';
 
   const filteredAndSortedLoans = useMemo(() => {
     if (!loans) return [];
@@ -35,7 +41,13 @@ export default function LoansPage() {
 
     // Filter by status
     if (filterStatus !== 'all') {
-      result = result.filter(l => l.status === filterStatus);
+      result = result.filter(l => {
+        if (filterStatus === 'overdue') return isOverdue(l);
+        if (filterStatus === 'active') {
+          return l.status !== 'closed' && l.status !== 'settled' && Number(l.current_principal) > 0;
+        }
+        return l.status === filterStatus;
+      });
     }
 
     // Filter by search (case insensitive)
@@ -130,7 +142,7 @@ export default function LoansPage() {
             </div>
             <div className="bg-surface border border-border p-4 rounded-2xl">
               <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Overdue Loans</p>
-              <p className="text-xl font-black text-danger">{loans.filter(l => l.status === 'overdue').length}</p>
+              <p className="text-xl font-black text-danger">{loans.filter(isOverdue).length}</p>
             </div>
             <div className="bg-surface border border-border p-4 rounded-2xl">
               <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Active Portfolio</p>
@@ -180,6 +192,7 @@ export default function LoansPage() {
           </select>
 
           <div className="flex bg-background border border-border rounded-xl p-1 gap-1">
+            <span className="hidden sm:flex items-center pl-2 text-[10px] font-bold uppercase tracking-widest text-muted">Sort by</span>
             <select
               className="bg-transparent text-xs outline-none cursor-pointer pr-1"
               value={sortBy}
@@ -232,12 +245,12 @@ export default function LoansPage() {
             <span className="text-[10px] font-bold uppercase tracking-widest hidden lg:inline">Export</span>
           </button>
 
-          {(searchQuery || filterType !== 'all' || filterStatus !== 'all') && (
+          {(searchQuery || filterType !== 'all' || filterStatus !== 'active') && (
             <button
               onClick={() => {
                 setSearchQuery("");
                 setFilterType("all");
-                setFilterStatus("all");
+                setFilterStatus("active");
               }}
               className="px-3 py-2 text-[10px] font-bold text-danger hover:bg-danger/5 rounded-xl transition-all uppercase tracking-widest"
             >
@@ -291,7 +304,7 @@ export default function LoansPage() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted text-xs">Due Date</span>
-                      <span className={`font-semibold text-xs ${new Date(loan.due_date) < new Date() && loan.current_principal !== '0.00' ? 'text-danger' : ''}`}>
+                      <span className={`font-semibold text-xs ${new Date(loan.due_date) < new Date() ? 'text-danger font-bold' : ''}`}>
                         {new Date(loan.due_date).toLocaleDateString()}
                       </span>
                     </div>
@@ -337,7 +350,7 @@ export default function LoansPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-right font-black">₹{Number(loan.current_principal).toLocaleString()}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold">{Number(loan.interest_rate)}%</td>
                         <td className="px-6 py-4 whitespace-nowrap text-xs">
-                          <span className={new Date(loan.due_date) < new Date() && loan.current_principal !== '0.00' ? 'text-danger font-bold' : ''}>
+                          <span className={new Date(loan.due_date) < new Date() ? 'text-danger font-bold' : ''}>
                             {new Date(loan.due_date).toLocaleDateString()}
                           </span>
                         </td>

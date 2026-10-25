@@ -14,6 +14,11 @@ class UserLogin(BaseModel):
     identifier: str
     password: str
 
+class CounterpartyChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_password: str
+
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
@@ -32,6 +37,8 @@ class UserResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    actor: str = "owner"
+    must_change_password: bool = False
 
 
 class MessageResponse(BaseModel):

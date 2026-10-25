@@ -9,13 +9,17 @@ from app.schemas.auth import (
     UserResponse,
     ChangePasswordRequest,
     MessageResponse,
+    CounterpartyChangePasswordRequest,
 )
 from app.services.auth import (
     hash_password,
     verify_password,
     create_access_token,
     get_current_user,
+    get_current_counterparty,
 )
+from app.lending.database import get_db
+import asyncpg
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -50,7 +54,11 @@ async def register(data: UserCreate, supabase: Client = Depends(get_supabase)):
 
 
 @router.post("/login", response_model=Token)
-async def login(data: UserLogin, supabase: Client = Depends(get_supabase)):
+async def login(
+    data: UserLogin,
+    supabase: Client = Depends(get_supabase),
+    conn: asyncpg.Connection = Depends(get_db),
+):
     # Fetch user by email or username
     try:
         # Supabase doesn't support complex OR in .eq chain easily for this case without raw SQL or multiple queries.
@@ -63,13 +71,50 @@ async def login(data: UserLogin, supabase: Client = Depends(get_supabase)):
         user_data = None
 
     if not user_data or not verify_password(data.password, user_data["password_hash"]):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+        counterparty = await conn.fetchrow("""
+            SELECT cp.id, a.password_hash, a.must_change_password
+            FROM lending_counterparties cp
+            JOIN lending_counterparty_access a ON a.counterparty_id = cp.id
+            WHERE LOWER(cp.name) = LOWER($1) AND a.enabled = TRUE
+        """, data.identifier.strip())
+        if not counterparty or not verify_password(data.password, counterparty["password_hash"]):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+        token = create_access_token({"sub": str(counterparty["id"]), "actor": "counterparty"})
+        return Token(
+            access_token=token,
+            actor="counterparty",
+            must_change_password=counterparty["must_change_password"],
         )
 
     token = create_access_token({"sub": str(user_data["id"])})
     return Token(access_token=token)
+
+@router.post("/counterparty/change-password", response_model=MessageResponse)
+async def change_counterparty_password(
+    data: CounterpartyChangePasswordRequest,
+    counterparty: dict = Depends(get_current_counterparty),
+    conn: asyncpg.Connection = Depends(get_db),
+):
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    if data.new_password != data.confirm_password:
+        raise HTTPException(status_code=400, detail="New password and confirmation do not match")
+    if data.current_password == data.new_password:
+        raise HTTPException(status_code=400, detail="New password must be different from current password")
+
+    row = await conn.fetchrow(
+        "SELECT password_hash FROM lending_counterparty_access WHERE counterparty_id = $1 AND enabled = TRUE",
+        counterparty["id"],
+    )
+    if not row or not verify_password(data.current_password, row["password_hash"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    await conn.execute("""
+        UPDATE lending_counterparty_access
+        SET password_hash = $1, must_change_password = FALSE, updated_at = NOW()
+        WHERE counterparty_id = $2
+    """, hash_password(data.new_password), counterparty["id"])
+    return MessageResponse(message="Password changed successfully")
 
 
 @router.get("/me", response_model=UserResponse)

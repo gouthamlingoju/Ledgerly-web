@@ -15,6 +15,7 @@ import NewLoanPage from "./lending/pages/NewLoanPage";
 import LoanDetailPage from "./lending/pages/LoanDetailPage";
 import CounterpartyDetailPage from "./lending/pages/CounterpartyDetailPage";
 import ProfilePage from "./pages/ProfilePage";
+import CounterpartyPortalPage from "./pages/CounterpartyPortalPage";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/counterparty-portal" element={<CounterpartyPortalPage />} />
 
       <Route element={<DashboardLayout />}>
         {/* Ledger Module Routes */}

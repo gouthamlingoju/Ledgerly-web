@@ -54,3 +54,18 @@ CREATE INDEX IF NOT EXISTS idx_lending_cp_user ON lending_counterparties(user_id
 CREATE INDEX IF NOT EXISTS idx_lending_loans_user ON lending_loans(user_id);
 CREATE INDEX IF NOT EXISTS idx_lending_trans_user ON lending_transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_lending_trans_loan ON lending_transactions(loan_id);
+
+-- Optional read-only counterparty portal credentials. Passwords are stored as
+-- bcrypt hashes and the initial password is never persisted in plaintext.
+CREATE TABLE IF NOT EXISTS lending_counterparty_access (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    counterparty_id UUID NOT NULL UNIQUE REFERENCES lending_counterparties(id) ON DELETE CASCADE,
+    password_hash TEXT NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    must_change_password BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_lending_cp_access_counterparty
+    ON lending_counterparty_access(counterparty_id);

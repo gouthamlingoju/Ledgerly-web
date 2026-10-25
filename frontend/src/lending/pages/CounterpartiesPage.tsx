@@ -6,11 +6,12 @@ import { lendingSidebarItems } from "../../components/NavigationItems";
 import { Counterparty } from "../types";
 
 export default function CounterpartiesPage() {
-  const { useCounterparties, useCreateCounterparty, useUpdateCounterparty, useDeleteCounterparty } = useLending();
+  const { useCounterparties, useCreateCounterparty, useUpdateCounterparty, useDeleteCounterparty, useUpdateCounterpartyPortalAccess } = useLending();
   const { data: counterparties, isLoading } = useCounterparties();
   const createMutation = useCreateCounterparty();
   const updateMutation = useUpdateCounterparty();
   const deleteMutation = useDeleteCounterparty();
+  const portalAccessMutation = useUpdateCounterpartyPortalAccess();
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -21,6 +22,7 @@ export default function CounterpartiesPage() {
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'recent' | 'phone' | 'notes'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -28,6 +30,10 @@ export default function CounterpartiesPage() {
     if (!counterparties) return [];
 
     let result = [...counterparties];
+
+    if (filterStatus !== 'all') {
+      result = result.filter(cp => cp.status === filterStatus);
+    }
 
     // Filter by search
     if (searchQuery) {
@@ -55,7 +61,7 @@ export default function CounterpartiesPage() {
     });
 
     return result;
-  }, [counterparties, searchQuery, sortBy, sortOrder]);
+  }, [counterparties, searchQuery, filterStatus, sortBy, sortOrder]);
 
   const resetForm = () => {
     setShowForm(false);
@@ -104,6 +110,10 @@ export default function CounterpartiesPage() {
     });
   };
 
+  const togglePortalAccess = (cp: Counterparty) => {
+    portalAccessMutation.mutate({ id: cp.id, enabled: !cp.portal_enabled });
+  };
+
   const avatarGradients = [
     "linear-gradient(135deg, #6366f1, #8b5cf6)",
     "linear-gradient(135deg, #ec4899, #f43f5e)",
@@ -144,6 +154,16 @@ export default function CounterpartiesPage() {
               className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl text-xs focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             />
           </div>
+          <select
+            className="bg-background border border-border rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
+            aria-label="Filter counterparties by status"
+          >
+            <option value="all">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
         </div>
 
         <div className="flex w-full sm:w-auto gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
@@ -188,9 +208,9 @@ export default function CounterpartiesPage() {
             </button>
           </div>
 
-          {searchQuery && (
+          {(searchQuery || filterStatus !== 'all') && (
             <button
-              onClick={() => setSearchQuery("")}
+              onClick={() => { setSearchQuery(""); setFilterStatus('all'); }}
               className="px-3 py-2 text-[10px] font-bold text-danger hover:bg-danger/5 rounded-xl transition-all uppercase tracking-widest"
             >
               Clear
@@ -262,8 +282,8 @@ export default function CounterpartiesPage() {
         <div className="p-10 text-center"><p className="text-muted">Loading counterparties...</p></div>
       ) : !filteredAndSortedCPs.length ? (
         <div className="bg-surface rounded-2xl border border-border p-14 text-center">
-          <p className="font-bold text-lg">{searchQuery ? 'No counterparties found' : 'No counterparties yet'}</p>
-          <p className="text-muted text-sm mt-1.5">{searchQuery ? 'Try adjusting your search' : 'Add a counterparty to start managing loans'}</p>
+          <p className="font-bold text-lg">{searchQuery || filterStatus !== 'all' ? 'No counterparties found' : 'No counterparties yet'}</p>
+          <p className="text-muted text-sm mt-1.5">{searchQuery || filterStatus !== 'all' ? 'Try adjusting your search or filters' : 'Add a counterparty to start managing loans'}</p>
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -285,6 +305,13 @@ export default function CounterpartiesPage() {
                     </button>
                     <button onClick={() => handleDelete(cp.id)} className="p-1.5 rounded-lg hover:bg-danger/10 text-danger transition-all">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v2m3 3H9" /></svg>
+                    </button>
+                    <button
+                      onClick={() => togglePortalAccess(cp)}
+                      className={`p-1.5 rounded-lg transition-all ${cp.portal_enabled ? "hover:bg-danger/10 text-danger" : "hover:bg-success/10 text-success"}`}
+                      title={cp.portal_enabled ? "Disable read-only login" : "Enable read-only login"}
+                    >
+                      {cp.portal_enabled ? "🔒" : "🔓"}
                     </button>
                   </div>
                 </div>
@@ -335,6 +362,13 @@ export default function CounterpartiesPage() {
                           </button>
                           <button onClick={() => handleDelete(cp.id)} className="p-1.5 rounded-lg hover:bg-danger/10 text-danger transition-all">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v2m3 3H9" /></svg>
+                          </button>
+                          <button
+                            onClick={() => togglePortalAccess(cp)}
+                            className={`p-1.5 rounded-lg transition-all ${cp.portal_enabled ? "hover:bg-danger/10 text-danger" : "hover:bg-success/10 text-success"}`}
+                            title={cp.portal_enabled ? "Disable read-only login" : "Enable read-only login"}
+                          >
+                            {cp.portal_enabled ? "🔒" : "🔓"}
                           </button>
                         </div>
                       </td>

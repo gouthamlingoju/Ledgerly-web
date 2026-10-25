@@ -8,11 +8,15 @@ from app.lending.schemas import (
     LoanResponse, LoanCreate, LoanUpdate,
     RepaymentRequest, ExtensionRequest, SettlementRequest, LoanTransactionResponse,
     LoanWithCounterparty, LoanDetailResponse, CounterpartyDetailResponse,
-    TransactionUpdate
+    TransactionUpdate, CounterpartyAccessUpdate
 )
 from app.lending import services
 from app.lending.database import get_db
-from app.services.auth import get_current_user
+from app.services.auth import (
+    get_current_user,
+    get_current_counterparty,
+    require_counterparty_password_changed,
+)
 from app.schemas.auth import UserResponse
 
 router = APIRouter(prefix="/lending", tags=["Lending Management"])
@@ -49,6 +53,15 @@ async def update_counterparty(
     conn: asyncpg.Connection = Depends(get_db)
 ):
     return await services.update_counterparty(conn, current_user.id, cp_id, data)
+
+@router.patch("/counterparties/{cp_id}/portal-access")
+async def update_counterparty_portal_access(
+    cp_id: UUID,
+    data: CounterpartyAccessUpdate,
+    current_user: UserResponse = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+):
+    return await services.update_counterparty_access(conn, current_user.id, cp_id, data.enabled)
 
 @router.get("/counterparties/{cp_id}/detail", response_model=CounterpartyDetailResponse)
 async def get_counterparty_detail(
@@ -150,3 +163,30 @@ async def delete_transaction(
 ):
     await services.delete_transaction(conn, current_user.id, transaction_id)
     return None
+
+@router.get("/portal/me")
+async def get_counterparty_portal_me(
+    counterparty: dict = Depends(get_current_counterparty),
+):
+    return {
+        "id": counterparty["id"],
+        "name": counterparty["name"],
+        "must_change_password": counterparty["must_change_password"],
+    }
+
+@router.get("/portal/loans", response_model=List[LoanWithCounterparty])
+async def list_counterparty_portal_loans(
+    counterparty: dict = Depends(get_current_counterparty),
+    conn: asyncpg.Connection = Depends(get_db),
+):
+    require_counterparty_password_changed(counterparty)
+    return await services.get_portal_loans(conn, counterparty["id"])
+
+@router.get("/portal/loans/{loan_id}", response_model=LoanDetailResponse)
+async def get_counterparty_portal_loan(
+    loan_id: UUID,
+    counterparty: dict = Depends(get_current_counterparty),
+    conn: asyncpg.Connection = Depends(get_db),
+):
+    require_counterparty_password_changed(counterparty)
+    return await services.get_portal_loan_detail(conn, counterparty["id"], loan_id)

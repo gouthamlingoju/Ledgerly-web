@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { authApi } from "@/lib/api";
@@ -7,8 +7,10 @@ import { useAuth } from "@/lib/auth-context";
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -18,8 +20,14 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await authApi.login(identifier, password);
-      await login(res.data.access_token);
-      navigate("/ledger");
+      if (res.data.actor === "counterparty") {
+        localStorage.setItem("counterparty_token", res.data.access_token);
+        localStorage.removeItem("token");
+        navigate(res.data.must_change_password ? "/counterparty-portal?changePassword=1" : "/counterparty-portal");
+      } else {
+        await login(res.data.access_token);
+        navigate("/ledger");
+      }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string } } };
       setError(axiosErr.response?.data?.detail || "Login failed");
@@ -30,6 +38,13 @@ export default function LoginPage() {
 
   const inputClass =
     "w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm";
+
+  const submitOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      formRef.current?.requestSubmit();
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-background relative overflow-hidden ">
@@ -51,10 +66,10 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5 w-full">
+        <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-5 w-full">
           <div className="space-y-1.5">
             <label htmlFor="identifier" className="block text-sm font-medium">
-              Email or Username
+              Email, Username, or Counterparty Name
             </label>
             <input
               id="identifier"
@@ -62,8 +77,9 @@ export default function LoginPage() {
               required
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
+              onKeyDown={submitOnEnter}
               className={inputClass}
-              placeholder="Email or Username"
+              placeholder="Email, username, or counterparty name"
             />
           </div>
 
@@ -71,16 +87,27 @@ export default function LoginPage() {
             <label htmlFor="password" className="block text-sm font-medium">
               Password
             </label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
-              placeholder="••••••••"
-              autoComplete="current-password"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={submitOnEnter}
+                className={`${inputClass} pr-20`}
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                className="absolute inset-y-0 right-3 my-auto h-8 px-2 text-xs font-semibold text-muted hover:text-foreground"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
 
           <button

@@ -40,6 +40,7 @@ class CounterpartyResponse(BaseModel):
     notes: Optional[str] = None
     status: CounterpartyStatus
     created_at: datetime
+    portal_enabled: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -53,6 +54,9 @@ class CounterpartyUpdate(BaseModel):
     phone: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[CounterpartyStatus] = None
+
+class CounterpartyAccessUpdate(BaseModel):
+    enabled: bool
 
 class LoanResponse(BaseModel):
     id: UUID

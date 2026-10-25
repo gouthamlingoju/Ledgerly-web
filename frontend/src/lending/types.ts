@@ -17,6 +17,7 @@ export interface Counterparty {
   notes: string | null;
   status: CounterpartyStatus;
   created_at: string;
+  portal_enabled?: boolean;
 }
 
 export interface Loan {

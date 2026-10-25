@@ -10,6 +10,8 @@ export const lendingApi = {
     api.patch<Counterparty>(`/lending/counterparties/${id}`, data),
   deleteCounterparty: (id: string) =>
     api.delete(`/lending/counterparties/${id}`),
+  updateCounterpartyPortalAccess: (id: string, enabled: boolean) =>
+    api.patch<{ enabled: boolean }>(`/lending/counterparties/${id}/portal-access`, { enabled }),
   getCounterpartyDetail: (id: string) =>
     api.get<import("../types").CounterpartyDetailResponse>(`/lending/counterparties/${id}/detail`),
 

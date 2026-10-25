@@ -10,7 +10,7 @@ const api = axios.create({
 // Attach JWT token to every request
 api.interceptors.request.use((config) => {
     if (typeof window !== "undefined") {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("token") || localStorage.getItem("counterparty_token");
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -47,10 +47,22 @@ export const authApi = {
     register: (email: string, username: string, password: string) =>
         api.post<{ access_token: string }>("/auth/register", { email, username, password }),
     login: (identifier: string, password: string) =>
-        api.post<{ access_token: string }>("/auth/login", { identifier, password }),
+        api.post<{ access_token: string; actor?: "owner" | "counterparty"; must_change_password?: boolean }>("/auth/login", { identifier, password }),
     me: () => api.get<User>("/auth/me"),
     changePassword: (current_password: string, new_password: string) =>
         api.post<{ message: string }>("/auth/change-password", { current_password, new_password }),
+    changeCounterpartyPassword: (current_password: string, new_password: string, confirm_password: string) =>
+        api.post<{ message: string }>("/auth/counterparty/change-password", {
+            current_password,
+            new_password,
+            confirm_password,
+        }),
+};
+
+export const counterpartyPortalApi = {
+    me: () => api.get<{ id: string; name: string; must_change_password: boolean }>("/lending/portal/me"),
+    loans: () => api.get<import("@/src/lending/types").Loan[]>("/lending/portal/loans"),
+    loan: (id: string) => api.get<import("@/src/lending/types").LoanDetailResponse>(`/lending/portal/loans/${id}`),
 };
 
 // --- Contacts ---
