@@ -10,6 +10,9 @@ export default function CounterpartyDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<'all' | 'lent' | 'borrowed'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'overdue' | 'closed'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'due_date' | 'principal' | 'interest_rate' | 'type' | 'status'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isEditing, setIsEditing] = useState(false);
@@ -25,9 +28,26 @@ export default function CounterpartyDetailPage() {
   const deleteMutation = useDeleteCounterparty();
 
   const rawLoans = detail?.loans || [];
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
   const loans = useMemo(() => {
     let result = [...rawLoans];
+    const query = searchQuery.trim().toLowerCase();
+
+    if (filterType !== 'all') result = result.filter((loan) => loan.type === filterType);
+    if (filterStatus !== 'all') result = result.filter((loan) => loan.status === filterStatus);
+    if (query) {
+      result = result.filter((loan) => [
+        loan.type,
+        loan.status,
+        loan.current_principal,
+        loan.interest_rate,
+        formatDate(loan.due_date),
+        formatDate(loan.start_date),
+      ].some((value) => String(value).toLowerCase().includes(query)));
+    }
+
     result.sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'date') {
@@ -46,7 +66,7 @@ export default function CounterpartyDetailPage() {
       return sortOrder === 'desc' ? -comparison : comparison;
     });
     return result;
-  }, [rawLoans, sortBy, sortOrder]);
+  }, [rawLoans, searchQuery, filterType, filterStatus, sortBy, sortOrder]);
 
   if (isLoading) {
     return (
@@ -74,9 +94,6 @@ export default function CounterpartyDetailPage() {
     .filter(l => l.type === 'borrowed')
     .reduce((sum, l) => sum + Number(l.current_principal), 0);
   const activeLoans = loans.filter(l => l.status === 'active').length;
-
-  const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
   const startEditing = () => {
     setIsEditing(true);
@@ -260,7 +277,43 @@ export default function CounterpartyDetailPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h2 className="font-bold text-lg">Loans ({loans.length})</h2>
 
-            <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-56 group">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none group-focus-within:text-primary">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z" />
+                  </svg>
+                </span>
+                <input
+                  type="search"
+                  placeholder="Search loans..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-xl text-xs focus:ring-2 focus:ring-primary/20 outline-none"
+                  aria-label="Search loans"
+                />
+              </div>
+              <select
+                className="bg-background border border-border rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value as typeof filterType)}
+                aria-label="Filter loans by type"
+              >
+                <option value="all">All Types</option>
+                <option value="lent">Lent</option>
+                <option value="borrowed">Borrowed</option>
+              </select>
+              <select
+                className="bg-background border border-border rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
+                aria-label="Filter loans by status"
+              >
+                <option value="all">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="overdue">Overdue</option>
+                <option value="closed">Closed</option>
+              </select>
               <div className="flex bg-background border border-border rounded-xl p-1 gap-1 flex-1 sm:flex-initial">
                 <select
                   className="bg-transparent text-xs outline-none cursor-pointer pr-1 flex-1"

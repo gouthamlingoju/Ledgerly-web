@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLending } from "../hooks/useLending";
 import { SidebarLayout } from "../../components/SidebarLayout";
 import { lendingSidebarItems } from "../../components/NavigationItems";
@@ -37,8 +37,29 @@ export default function LoanDetailPage() {
   const [extInterestOverride, setExtInterestOverride] = useState<string>('');
   const [extRate, setExtRate] = useState<string>('');
   const [extDuration, setExtDuration] = useState<string>('');
+  const [transactionSearch, setTransactionSearch] = useState("");
+  const [transactionType, setTransactionType] = useState("all");
 
   const isLent = loan?.type === 'lent';
+
+  const filteredTransactions = useMemo(() => {
+    if (!transactions) return [];
+    const query = transactionSearch.trim().toLowerCase();
+
+    return transactions.filter((tx) => {
+      const matchesType = transactionType === "all" || tx.transaction_type === transactionType;
+      const matchesSearch = !query || [
+        tx.transaction_type,
+        tx.transaction_date,
+        new Date(tx.transaction_date).toLocaleDateString(),
+        tx.total_amount,
+        tx.principal_component,
+        tx.interest_component,
+        tx.notes,
+      ].some((value) => String(value ?? "").toLowerCase().includes(query));
+      return matchesType && matchesSearch;
+    });
+  }, [transactions, transactionSearch, transactionType]);
 
   if (isLoadingLoan) return <div className="p-10 text-center text-muted">Loading loan details...</div>;
   if (!loan) return <div className="p-10 text-center text-danger font-bold">Loan not found</div>;
@@ -393,8 +414,41 @@ export default function LoanDetailPage() {
             {/* History Card */}
             <div className="bg-surface rounded-2xl border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-card)" }}>
               <div className="p-6 sm:p-8 border-b border-border/50">
-                <h3 className="font-bold text-lg">Transaction History</h3>
-                <p className="text-xs text-muted">All disbursements, repayments, and capitalizations related to this loan.</p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-bold text-lg">Transaction History</h3>
+                    <p className="text-xs text-muted">All disbursements, repayments, and capitalizations related to this loan.</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative group">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none group-focus-within:text-primary">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z" />
+                        </svg>
+                      </span>
+                      <input
+                        type="search"
+                        placeholder="Search transactions..."
+                        value={transactionSearch}
+                        onChange={(e) => setTransactionSearch(e.target.value)}
+                        className="w-full sm:w-52 pl-9 pr-3 py-2 bg-background border border-border rounded-xl text-xs focus:ring-2 focus:ring-primary/20 outline-none"
+                        aria-label="Search transactions"
+                      />
+                    </div>
+                    <select
+                      className="bg-background border border-border rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                      value={transactionType}
+                      onChange={(e) => setTransactionType(e.target.value)}
+                      aria-label="Filter transactions by type"
+                    >
+                      <option value="all">All Types</option>
+                      <option value="disbursement">Disbursement</option>
+                      <option value="repayment">Repayment</option>
+                      <option value="capitalization">Capitalization</option>
+                      <option value="settlement">Settlement</option>
+                    </select>
+                  </div>
+                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
@@ -409,7 +463,7 @@ export default function LoanDetailPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/50">
-                    {transactions?.map((tx) => (
+                    {filteredTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-background/20 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap font-medium">{new Date(tx.transaction_date).toLocaleDateString()}</td>
                         <td className="px-6 py-4 whitespace-nowrap capitalize">
@@ -438,9 +492,11 @@ export default function LoanDetailPage() {
                         </td>
                       </tr>
                     ))}
-                    {transactions?.length === 0 && (
+                    {filteredTransactions.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-6 py-10 text-center text-muted italic">No transactions found</td>
+                        <td colSpan={6} className="px-6 py-10 text-center text-muted italic">
+                          {transactions?.length ? "No transactions match your filters" : "No transactions found"}
+                        </td>
                       </tr>
                     )}
                   </tbody>
