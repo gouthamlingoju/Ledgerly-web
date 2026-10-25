@@ -95,6 +95,34 @@ export default function CounterpartyDetailPage() {
     .reduce((sum, l) => sum + Number(l.current_principal), 0);
   const activeLoans = loans.filter(l => l.status === 'active').length;
 
+  const handleExportCSV = () => {
+    if (!loans.length) return;
+
+    const escapeCSV = (value: string | number) =>
+      `"${String(value).replace(/"/g, '""')}"`;
+    const headers = ["Type", "Amount", "Interest Rate (%)", "Start Date", "Due Date", "Status"];
+    const rows = loans.map((loan) => [
+      loan.type,
+      Number(loan.current_principal).toFixed(2),
+      Number(loan.interest_rate).toFixed(2),
+      formatDate(loan.start_date),
+      formatDate(loan.due_date),
+      loan.status,
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map(escapeCSV).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${counterparty.name.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "") || "counterparty"}_loans_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const startEditing = () => {
     setIsEditing(true);
     setEditName(counterparty.name);
@@ -339,6 +367,17 @@ export default function CounterpartyDetailPage() {
                   )}
                 </button>
               </div>
+              <button
+                onClick={handleExportCSV}
+                disabled={!loans.length}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-border bg-background text-muted text-xs font-semibold hover:text-primary hover:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title={loans.length ? "Export filtered loans to CSV" : "No loans to export"}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" />
+                </svg>
+                <span>Export</span>
+              </button>
 
               <div className="flex bg-surface-hover/50 p-1 rounded-xl gap-1 border border-border/50">
                 <button
